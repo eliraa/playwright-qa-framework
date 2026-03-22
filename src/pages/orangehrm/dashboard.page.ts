@@ -6,7 +6,7 @@ export class DashboardPage {
   readonly dashboardUrlPattern: RegExp;
 
   constructor(private readonly page: Page) {
-    this.dashboardHeader = page.getByRole('heading', { name: 'Dashboard' });
+    this.dashboardHeader = page.locator('.oxd-topbar-header-breadcrumb h6').first();
     this.dashboardUrlPattern = /\/web\/index\.php\/dashboard\/index/;
   }
 

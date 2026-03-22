@@ -8,14 +8,13 @@ export class LoginPage {
   readonly invalidCredentialsMessage: Locator;
 
   constructor(private readonly page: Page) {
-    this.usernameInput = page.getByRole('textbox', {
-      name: /^(Username|Benutzername)$/i,
-    });
-    this.passwordInput = page.getByRole('textbox', {
-      name: /^(Password|Passwort)$/i,
-    });
-    this.loginButton = page.getByRole('button', { name: 'Login' });
-    this.invalidCredentialsMessage = page.getByText('Invalid credentials');
+    const loginForm = page.locator('form');
+    const visibleLoginInputs = loginForm.locator('input:not([type="hidden"])');
+
+    this.usernameInput = visibleLoginInputs.nth(0);
+    this.passwordInput = visibleLoginInputs.nth(1);
+    this.loginButton = loginForm.locator('button[type="submit"]');
+    this.invalidCredentialsMessage = page.locator('.oxd-alert-content-text').first();
   }
 
   async open(): Promise<void> {

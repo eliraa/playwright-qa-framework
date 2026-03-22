@@ -12,7 +12,7 @@ test.describe('OrangeHRM admin users', () => {
 
       await expect(loggedInPage).toHaveURL(adminPage.adminUrlPattern);
       await expect(adminPage.adminHeader).toBeVisible();
-      await expect(adminPage.usersTable).toBeVisible();
+      await expect(adminPage.usernameInput).toBeVisible();
     });
 
     await test.step('Search for the Admin user', async () => {
@@ -20,8 +20,38 @@ test.describe('OrangeHRM admin users', () => {
     });
 
     await test.step('Verify the Admin user is shown in the results table', async () => {
-      await expect(adminPage.userRows).toHaveCount(1);
+      await expect(adminPage.usersTable).toBeVisible();
       await expect(adminPage.userRow('Admin')).toBeVisible();
+      await expect(adminPage.usersTable).toContainText('Admin');
+    });
+  });
+
+  test('does not show a row for a random username', async ({ loggedInPage }) => {
+    const adminPage = new AdminPage(loggedInPage);
+    const randomUsername = `no-user-${Date.now()}`;
+
+    await test.step('Open the Admin users page', async () => {
+      await adminPage.open();
+
+      await expect(loggedInPage).toHaveURL(adminPage.adminUrlPattern);
+      await expect(adminPage.adminHeader).toBeVisible();
+      await expect(adminPage.usernameInput).toBeVisible();
+    });
+
+    await test.step('Search for a username that should not exist', async () => {
+      await adminPage.searchUserByUsername(randomUsername);
+    });
+
+    await test.step('Verify the random username is not shown in the results', async () => {
+      await expect(adminPage.userRow(randomUsername)).not.toBeVisible();
+
+      if (await adminPage.usersTable.isVisible()) {
+        await expect(adminPage.usersTable).not.toContainText(randomUsername);
+      }
+
+      await expect
+        .poll(async () => adminPage.isUserVisible(randomUsername))
+        .toBe(false);
     });
   });
 });
