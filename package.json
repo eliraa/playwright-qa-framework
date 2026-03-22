@@ -1,0 +1,27 @@
+{
+  "name": "udemyfixeddependancies",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test --project=chromium-playground",
+    "test:all": "npx playwright test",
+    "test:chromium": "npx playwright test --project=chromium-playground",
+    "test:firefox": "npx playwright test --project=firefox-playground",
+    "test:headed": "npx playwright test --project=chromium-playground --headed",
+    "test:ui": "npx playwright test --project=chromium-playground --ui",
+    "test:report": "npx playwright show-report",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.5.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
+  }
+}
