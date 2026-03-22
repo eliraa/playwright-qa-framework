@@ -3,6 +3,7 @@ import { PlaygroundBasePage } from './playgroundBasePage';
 
 type AutoWaitElementType = 'button' | 'input' | 'textarea' | 'select' | 'label';
 type AutoWaitDelay = 3 | 5 | 10;
+const progressBarThresholdTimeout = 30_000;
 
 export class AutoWaitPage extends PlaygroundBasePage {
   readonly elementType: Locator;
@@ -94,11 +95,14 @@ export class ProgressBarPage extends PlaygroundBasePage {
     this.result = page.locator('#result');
   }
 
-  async waitForValueAtLeast(targetValue: number): Promise<void> {
+  async waitForValueAtLeast(
+    targetValue: number,
+    timeout = progressBarThresholdTimeout,
+  ): Promise<void> {
     await this.page.waitForFunction((expectedValue) => {
       const progressBar = document.getElementById('progressBar');
       return Number(progressBar?.getAttribute('aria-valuenow')) >= expectedValue;
-    }, targetValue);
+    }, targetValue, { timeout });
   }
 }
 

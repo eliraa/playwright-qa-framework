@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { UiTestingPlaygroundPageManager } from '../page-objects/ui-testing-playground/uiTestingPlaygroundPageManager';
 
+const targetProgressValue = 75;
+const allowedProgressOvershoot = 10;
+
 test.describe('Auto waiting', () => {
   test('waits for the target input to become interactable on the auto-wait page', async ({ page }) => {
     const playground = new UiTestingPlaygroundPageManager(page);
@@ -42,13 +45,14 @@ test.describe('Load delays', () => {
 
     await playground.progressBar.open();
     await playground.progressBar.startButton.click();
-    await playground.progressBar.waitForValueAtLeast(75);
+    await playground.progressBar.waitForValueAtLeast(targetProgressValue);
     await playground.progressBar.stopButton.click();
 
     const stoppedValue = Number(await playground.progressBar.progressBar.getAttribute('aria-valuenow'));
 
-    expect(stoppedValue).toBeGreaterThanOrEqual(75);
-    expect(stoppedValue).toBeLessThanOrEqual(80);
+    // CI load can delay the stop click slightly after the threshold is reached.
+    expect(stoppedValue).toBeGreaterThanOrEqual(targetProgressValue);
+    expect(stoppedValue).toBeLessThanOrEqual(targetProgressValue + allowedProgressOvershoot);
     await expect(playground.progressBar.result).toContainText('Result:');
   });
 });

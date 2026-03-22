@@ -1,13 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
+import { getLocalBaseUrl, getRemoteBaseUrl } from './src/config/testEnvironment';
 
 dotenv.config();
 
-const localBaseURL = process.env.LOCAL_BASE_URL ?? 'http://localhost:4200';
-const playgroundBaseURL =
-  process.env.BASE_URL ??
-  process.env.PLAYGROUND_BASE_URL ??
-  'https://uitestingplayground.com';
+const localBaseURL = getLocalBaseUrl();
+const playgroundBaseURL = getRemoteBaseUrl('playground');
 
 export default defineConfig({
   testDir: './tests',
@@ -56,7 +54,14 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: localBaseURL,
       },
-      testIgnore: ['tests/autoWaiting.spec.ts', 'tests/dynamicElements.spec.ts', 'tests/visibility.spec.ts', 'tests/ajax.spec.ts', 'tests/geolocation.spec.ts'],
+      testIgnore: [
+        'tests/autoWaiting.spec.ts',
+        'tests/dynamicElements.spec.ts',
+        'tests/visibility.spec.ts',
+        'tests/ajax.spec.ts',
+        'tests/geolocation.spec.ts',
+        'tests/ui/orangehrm/**/*.spec.ts',
+      ],
     },
   ],
 });
