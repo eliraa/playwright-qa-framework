@@ -17,7 +17,7 @@ export const test = base.extend<AuthFixtures>({
       orangeHrmUsers.valid.username,
       orangeHrmUsers.valid.password,
     );
-    await expect(page).toHaveURL(dashboardPage.dashboardUrlPattern);
+    await page.waitForURL(dashboardPage.dashboardUrlPattern, { timeout: 15_000 });
     await expect(dashboardPage.dashboardHeader).toBeVisible();
 
     await use(page);

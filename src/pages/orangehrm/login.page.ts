@@ -8,8 +8,12 @@ export class LoginPage {
   readonly invalidCredentialsMessage: Locator;
 
   constructor(private readonly page: Page) {
-    this.usernameInput = page.getByPlaceholder('Username');
-    this.passwordInput = page.getByPlaceholder('Password');
+    this.usernameInput = page.getByRole('textbox', {
+      name: /^(Username|Benutzername)$/i,
+    });
+    this.passwordInput = page.getByRole('textbox', {
+      name: /^(Password|Passwort)$/i,
+    });
     this.loginButton = page.getByRole('button', { name: 'Login' });
     this.invalidCredentialsMessage = page.getByText('Invalid credentials');
   }

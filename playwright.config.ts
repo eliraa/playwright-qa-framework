@@ -13,7 +13,7 @@ export default defineConfig({
   globalTimeout: 10 * 60 * 1000,
 
   expect: {
-    timeout: 2_000,
+    timeout: 5_000,
   },
 
   fullyParallel: true,
