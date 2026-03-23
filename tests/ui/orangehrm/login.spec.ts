@@ -5,8 +5,6 @@ import { LoginPage } from '../../../src/pages/orangehrm/login.page';
 import { ORANGE_HRM_UI_TIMEOUT } from '../../../src/pages/orangehrm/orangehrm.constants';
 
 test.describe('OrangeHRM login', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'OrangeHRM coverage is stabilized in Chromium first.');
-
   test('signs in successfully with valid credentials', async ({ page }) => {
     const loginPage = new LoginPage(page);
     const dashboardPage = new DashboardPage(page);

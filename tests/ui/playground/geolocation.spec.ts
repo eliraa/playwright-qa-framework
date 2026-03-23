@@ -46,7 +46,12 @@ test.describe('Geolocation', () => {
     }
   });
 
-  test('shows unavailable when geolocation permission is not granted', async ({ browser }) => {
+  test('shows unavailable when geolocation permission is not granted', async ({ browser, browserName }) => {
+    test.skip(
+      browserName === 'firefox',
+      'Firefox leaves this demo in "Requesting..." because geolocation stays in browser prompt state instead of resolving to a denied callback.',
+    );
+
     const session = await openGeolocationPage(browser);
 
     try {

@@ -2,8 +2,6 @@ import { DashboardPage } from '../../../src/pages/orangehrm/dashboard.page';
 import { expect, test } from '../../../src/fixtures/orangehrm/auth.fixture';
 
 test.describe('OrangeHRM dashboard', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'OrangeHRM coverage is stabilized in Chromium first.');
-
   test('opens the dashboard for an authenticated user', async ({ loggedInPage }) => {
     const dashboardPage = new DashboardPage(loggedInPage);
 

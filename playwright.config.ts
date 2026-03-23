@@ -47,6 +47,8 @@ export default defineConfig({
         baseURL: playgroundBaseURL,
         ignoreHTTPSErrors: true,
       },
+      // OrangeHRM is intentionally stabilized in Chromium first.
+      testIgnore: ['tests/ui/orangehrm/**/*.spec.ts'],
     },
     {
       name: 'chromium-local',

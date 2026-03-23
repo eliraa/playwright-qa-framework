@@ -3,7 +3,6 @@ import { test } from '../../../src/fixtures/orangehrm/auth.fixture';
 
 test.describe('OrangeHRM admin users', () => {
   test.describe.configure({ mode: 'serial' });
-  test.skip(({ browserName }) => browserName !== 'chromium', 'OrangeHRM coverage is stabilized in Chromium first.');
   let adminPage: AdminPage;
 
   test.beforeEach(async ({ loggedInPage }) => {
