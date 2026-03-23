@@ -1,159 +1,98 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import {
+  AdminUsersFilterComponent,
+  type UserRole,
+  type UserStatus,
+} from './components/admin-users-filter.component';
+import { AdminUsersTableComponent } from './components/admin-users-table.component';
 
-type UserRole = 'Admin' | 'ESS';
-type UserStatus = 'Enabled' | 'Disabled';
-type VisibleUserRow = {
-  username: string;
-  role: string;
-  employeeName: string;
-  status: string;
-};
+export type { UserRole, UserStatus } from './components/admin-users-filter.component';
 
 export class AdminPage {
-  readonly filtersForm: Locator;
-  readonly adminNavLink: Locator;
-  readonly adminHeader: Locator;
-  readonly usernameInput: Locator;
-  readonly userRoleDropdown: Locator;
-  readonly statusDropdown: Locator;
-  readonly searchButton: Locator;
-  readonly resetButton: Locator;
-  readonly usersTable: Locator;
-  readonly userRows: Locator;
-  readonly loadingSpinner: Locator;
-  readonly noRecordsMessage: Locator;
+  readonly filters: AdminUsersFilterComponent;
+  readonly usersTable: AdminUsersTableComponent;
   readonly adminUrlPattern: RegExp;
 
   constructor(private readonly page: Page) {
-    const adminForm = page.locator('form').first();
-    const visibleFilterInputs = adminForm.locator('input:not([type="hidden"])');
-    const filterDropdowns = adminForm.locator('.oxd-select-text');
-
-    this.filtersForm = adminForm;
-    this.adminNavLink = page.locator('a[href*="/admin/viewAdminModule"]').first();
-    this.adminHeader = page.locator('.oxd-topbar-header-breadcrumb h6').first();
-    this.usernameInput = visibleFilterInputs.nth(0);
-    this.userRoleDropdown = filterDropdowns.nth(0);
-    this.statusDropdown = filterDropdowns.nth(1);
-    this.searchButton = adminForm.locator('button[type="submit"]').first();
-    this.resetButton = adminForm.locator('button[type="button"]').first();
-    this.usersTable = page.getByRole('table').first();
-    this.userRows = this.usersTable.getByRole('row').filter({ has: page.getByRole('cell') });
-    this.loadingSpinner = page.locator('.oxd-loading-spinner').first();
-    this.noRecordsMessage = page.getByText(/No\s+Records?\s+Found|Keine.*gefunden/i).last();
+    this.filters = new AdminUsersFilterComponent(page);
+    this.usersTable = new AdminUsersTableComponent(page);
     this.adminUrlPattern = /\/web\/index\.php\/admin\/viewSystemUsers/;
   }
 
   async open(): Promise<void> {
-    await this.adminNavLink.click();
+    await this.page.locator('a[href*="/admin/viewAdminModule"]').first().click();
     await this.page.waitForURL(this.adminUrlPattern);
-    await expect(this.usernameInput).toBeVisible();
-    await expect(this.usersTable).toBeVisible();
+    await expect(this.page.locator('.oxd-topbar-header-breadcrumb h6').first()).toBeVisible();
+    await this.filters.expectReady();
+    await this.usersTable.expectReady();
   }
 
-  async selectUserRole(role: UserRole): Promise<void> {
-    await this.userRoleDropdown.click();
-    await this.page.getByRole('option', { name: role }).click();
-    await expect(this.userRoleDropdown).toContainText(role);
+  async setUsernameFilter(username: string): Promise<void> {
+    await this.filters.setUsername(username);
   }
 
-  async selectStatus(status: UserStatus): Promise<void> {
-    await this.statusDropdown.click();
-    await this.page.getByRole('option', { name: status }).click();
-    await expect(this.statusDropdown).toContainText(status);
+  async setUserRoleFilter(role: UserRole): Promise<void> {
+    await this.filters.selectUserRole(role);
+  }
+
+  async setStatusFilter(status: UserStatus): Promise<void> {
+    await this.filters.selectStatus(status);
   }
 
   async clickSearch(): Promise<void> {
-    await this.searchButton.click();
-    await this.waitForSearchToSettle();
+    const usersQuery = this.usersTable.waitForUsersQueryToComplete();
+
+    await this.filters.submitSearch();
+    await usersQuery;
+    await this.usersTable.waitForSearchToSettle();
   }
 
   async searchUserByUsername(username: string): Promise<void> {
-    await this.usernameInput.fill(username);
+    await this.setUsernameFilter(username);
+    await this.clickSearch();
+  }
+
+  async searchByUserRole(role: UserRole): Promise<void> {
+    await this.setUserRoleFilter(role);
+    await this.clickSearch();
+  }
+
+  async searchByUsernameAndRole(username: string, role: UserRole): Promise<void> {
+    await this.setUsernameFilter(username);
+    await this.setUserRoleFilter(role);
     await this.clickSearch();
   }
 
   async resetFilters(): Promise<void> {
-    await this.resetButton.click();
-    await this.waitForSearchToSettle();
-    await expect(this.usernameInput).toHaveValue('');
-  }
+    const usersQuery = this.usersTable.waitForUsersQueryToComplete();
 
-  async isUserVisible(username: string): Promise<boolean> {
-    const visibleRows = await this.getVisibleUserRows();
-
-    return visibleRows.some((row) => row.username === username);
+    await this.filters.reset();
+    await usersQuery;
+    await this.usersTable.waitForSearchToSettle();
+    await this.filters.expectReset();
   }
 
   async getVisibleRowsText(): Promise<string[]> {
-    const visibleRows = await this.getVisibleUserRows();
-
-    return visibleRows.map(({ username, role, employeeName, status }) =>
-      [username, role, employeeName, status].join(' | '),
-    );
+    return this.usersTable.getVisibleRowsText();
   }
 
-  private async waitForSearchToSettle(): Promise<void> {
-    await this.waitForLoadingOverlayToDisappear();
-    await expect(this.usersTable).toBeVisible();
-    await expect
-      .poll(async () => this.hasFinishedSearchState(), {
-        timeout: 15_000,
-      })
-      .toBe(true);
+  async isUserVisible(username: string): Promise<boolean> {
+    return this.usersTable.isUserVisible(username);
   }
 
-  private async waitForLoadingOverlayToDisappear(): Promise<void> {
-    try {
-      await this.loadingSpinner.waitFor({ state: 'visible', timeout: 2_000 });
-      await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 15_000 });
-    } catch {
-      // The live demo sometimes completes fast enough that no spinner is exposed.
-    }
+  async expectUserVisible(username: string): Promise<void> {
+    await this.usersTable.expectUserVisible(username);
   }
 
-  private async hasFinishedSearchState(): Promise<boolean> {
-    if (await this.loadingSpinner.isVisible()) {
-      return false;
-    }
-
-    if (await this.hasVisibleEmptyState()) {
-      return true;
-    }
-
-    return this.hasVisibleResultRows();
+  async expectResultsToContain(text: string): Promise<void> {
+    await this.usersTable.expectResultsToContain(text);
   }
 
-  private async hasVisibleResultRows(): Promise<boolean> {
-    return (await this.getVisibleUserRows()).length > 0;
+  async expectResultsCompatibleWithRole(role: UserRole): Promise<void> {
+    await this.usersTable.expectResultsCompatibleWithRole(role);
   }
 
-  private async hasVisibleEmptyState(): Promise<boolean> {
-    return this.noRecordsMessage.isVisible();
-  }
-
-  private async getVisibleUserRows(): Promise<VisibleUserRow[]> {
-    return this.userRows.evaluateAll((rows) => {
-      const normalize = (value: string | null | undefined): string =>
-        (value ?? '')
-          .split(/\r?\n/)
-          .map((textChunk) => textChunk.trim())
-          .filter(Boolean)
-          .join(' | ');
-
-      return rows
-        .filter((row): row is HTMLElement => row instanceof HTMLElement && row.offsetParent !== null)
-        .map((row) =>
-          Array.from(row.querySelectorAll('[role="cell"]')).map((cell) => normalize(cell.textContent)),
-        )
-        .filter((cells) => cells.length >= 5)
-        .map((cells) => ({
-          username: cells[1] ?? '',
-          role: cells[2] ?? '',
-          employeeName: cells[3] ?? '',
-          status: cells[4] ?? '',
-        }))
-        .filter((row) => row.username.length > 0);
-    });
+  async expectNoResultsFor(username: string): Promise<void> {
+    await this.usersTable.expectNoResultsFor(username);
   }
 }

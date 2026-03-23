@@ -1,0 +1,149 @@
+import { expect, type Locator, type Page } from '@playwright/test';
+import type { UserRole } from './admin-users-filter.component';
+
+type VisibleUserRow = {
+  username: string;
+  role: string;
+  employeeName: string;
+  status: string;
+};
+
+export class AdminUsersTableComponent {
+  readonly table: Locator;
+  readonly userRows: Locator;
+  readonly loadingSpinner: Locator;
+  readonly noRecordsMessage: Locator;
+
+  constructor(private readonly page: Page) {
+    this.table = page.getByRole('table').first();
+    this.userRows = this.table.getByRole('row').filter({ has: page.getByRole('cell') });
+    this.loadingSpinner = page.locator('.oxd-loading-spinner').first();
+    this.noRecordsMessage = page.getByText(/No\s+Records?\s+Found|Keine.*gefunden/i).last();
+  }
+
+  async expectReady(): Promise<void> {
+    await expect(this.table).toBeVisible();
+  }
+
+  async waitForUsersQueryToComplete(): Promise<void> {
+    await this.page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET'
+        && /\/api\/v2\/admin\/users/.test(response.url())
+        && response.ok(),
+      {
+        timeout: 15_000,
+      },
+    );
+  }
+
+  async waitForSearchToSettle(): Promise<void> {
+    await this.waitForLoadingOverlayToDisappear();
+    await this.expectReady();
+    await expect
+      .poll(async () => this.hasFinishedSearchState(), {
+        timeout: 15_000,
+      })
+      .toBe(true);
+  }
+
+  async getVisibleRowsText(): Promise<string[]> {
+    const visibleRows = await this.getVisibleUserRows();
+
+    return visibleRows.map(({ username, role, employeeName, status }) =>
+      [username, role, employeeName, status].join(' | '),
+    );
+  }
+
+  async isUserVisible(username: string): Promise<boolean> {
+    const visibleRows = await this.getVisibleUserRows();
+
+    return visibleRows.some((row) => row.username === username);
+  }
+
+  async expectUserVisible(username: string): Promise<void> {
+    expect(await this.isUserVisible(username)).toBe(true);
+  }
+
+  async expectResultsToContain(text: string): Promise<void> {
+    const visibleRowsText = await this.getVisibleRowsText();
+
+    expect(visibleRowsText.length).toBeGreaterThan(0);
+    expect(visibleRowsText.join(' ')).toContain(text);
+    await expect(this.table).toContainText(text);
+  }
+
+  async expectResultsCompatibleWithRole(role: UserRole): Promise<void> {
+    const visibleRows = await this.getVisibleUserRows();
+
+    expect(visibleRows.length).toBeGreaterThan(0);
+
+    for (const row of visibleRows) {
+      expect(row.role).toBe(role);
+    }
+  }
+
+  async expectNoResultsFor(username: string): Promise<void> {
+    const visibleRows = await this.getVisibleUserRows();
+    const hasNoRecordsMessage = await this.hasVisibleEmptyState();
+
+    expect(visibleRows.some((row) => row.username === username)).toBe(false);
+
+    if (hasNoRecordsMessage) {
+      await expect(this.noRecordsMessage).toBeVisible();
+      return;
+    }
+
+    await expect(this.table).not.toContainText(username);
+  }
+
+  private async waitForLoadingOverlayToDisappear(): Promise<void> {
+    try {
+      await this.loadingSpinner.waitFor({ state: 'visible', timeout: 2_000 });
+      await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 15_000 });
+    } catch {
+      // The live demo sometimes completes fast enough that no spinner is exposed.
+    }
+  }
+
+  private async hasFinishedSearchState(): Promise<boolean> {
+    if (await this.loadingSpinner.isVisible()) {
+      return false;
+    }
+
+    if (await this.hasVisibleEmptyState()) {
+      return true;
+    }
+
+    return (await this.getVisibleUserRows()).length > 0;
+  }
+
+  private async hasVisibleEmptyState(): Promise<boolean> {
+    return this.noRecordsMessage.isVisible();
+  }
+
+  private async getVisibleUserRows(): Promise<VisibleUserRow[]> {
+    return this.userRows.evaluateAll((rows) => {
+      const normalize = (value: string | null | undefined): string =>
+        (value ?? '')
+          .split(/\r?\n/)
+          .map((textChunk) => textChunk.trim())
+          .filter(Boolean)
+          .join(' | ');
+
+      return rows
+        .filter((row): row is HTMLElement => row instanceof HTMLElement && row.offsetParent !== null)
+        .map((row) =>
+          Array.from(row.querySelectorAll('[role="cell"]')).map((cell) => normalize(cell.textContent)),
+        )
+        .filter((cells) => cells.length >= 5)
+        .map((cells) => ({
+          username: cells[1] ?? '',
+          role: cells[2] ?? '',
+          employeeName: cells[3] ?? '',
+          status: cells[4] ?? '',
+        }))
+        .filter((row) => row.username.length > 0);
+    });
+  }
+}
