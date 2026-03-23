@@ -106,6 +106,3 @@ Currently expanding into automation with Playwright.
 ## 🔗 Links
 - LinkedIn: https://www.linkedin.com/in/elena-y-52a4a0121/  
 - Portfolio: https://www.notion.so/LinkedIn-Senior-QA-Lead-Portfolio-308830cc4ad98040a2f9c4c9ccdcb880  
-
-- LinkedIn: https://www.linkedin.com/in/elena-y-52a4a0121/  
-- Portfolio: https://www.notion.so/LinkedIn-Senior-QA-Lead-Portfolio-308830cc4ad98040a2f9c4c9ccdcb880 
