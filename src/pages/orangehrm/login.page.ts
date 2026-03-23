@@ -1,23 +1,24 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { buildAppUrl } from '../../config/testEnvironment';
-import { ORANGE_HRM_LOGIN_READY_TIMEOUT } from './orangehrm.constants';
+import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export class LoginPage {
   readonly loginUrlPattern: RegExp;
   readonly usernameInput: Locator;
   readonly passwordInput: Locator;
   readonly loginButton: Locator;
+  readonly invalidCredentialsAlert: Locator;
   readonly invalidCredentialsMessage: Locator;
 
   constructor(private readonly page: Page) {
-    const loginForm = page.locator('form');
-    const visibleLoginInputs = loginForm.locator('input:not([type="hidden"])');
-
     this.loginUrlPattern = /\/web\/index\.php\/auth\/login/;
-    this.usernameInput = visibleLoginInputs.nth(0);
-    this.passwordInput = visibleLoginInputs.nth(1);
-    this.loginButton = loginForm.locator('button[type="submit"]');
-    this.invalidCredentialsMessage = page.locator('.oxd-alert-content-text').first();
+    this.usernameInput = page.getByPlaceholder(/^Username$/i);
+    this.passwordInput = page.getByPlaceholder(/^Password$/i);
+    this.loginButton = page.getByRole('button', { name: /^Login$/i });
+    this.invalidCredentialsMessage = page.getByText(/^Invalid credentials$/i);
+    this.invalidCredentialsAlert = page.locator('.oxd-alert').filter({
+      has: this.invalidCredentialsMessage,
+    });
   }
 
   async open(): Promise<void> {
@@ -25,7 +26,7 @@ export class LoginPage {
       waitUntil: 'domcontentloaded',
     });
     await this.page.waitForURL(this.loginUrlPattern, {
-      timeout: ORANGE_HRM_LOGIN_READY_TIMEOUT,
+      timeout: ORANGE_HRM_UI_TIMEOUT,
       waitUntil: 'domcontentloaded',
     });
     await this.expectReady();
@@ -38,8 +39,7 @@ export class LoginPage {
   }
 
   async expectReady(): Promise<void> {
-    await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_LOGIN_READY_TIMEOUT });
-    await expect(this.passwordInput).toBeVisible({ timeout: ORANGE_HRM_LOGIN_READY_TIMEOUT });
-    await expect(this.loginButton).toBeVisible({ timeout: ORANGE_HRM_LOGIN_READY_TIMEOUT });
+    await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+    await expect(this.loginButton).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
   }
 }

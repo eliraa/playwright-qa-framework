@@ -5,7 +5,7 @@ import {
   type UserStatus,
 } from './components/admin-users-filter.component';
 import { AdminUsersTableComponent } from './components/admin-users-table.component';
-import { ORANGE_HRM_POST_SUBMIT_TIMEOUT } from './orangehrm.constants';
+import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export type { UserRole, UserStatus } from './components/admin-users-filter.component';
 
@@ -21,9 +21,9 @@ export class AdminPage {
   }
 
   async open(): Promise<void> {
-    await this.page.locator('a[href*="/admin/viewAdminModule"]').first().click();
+    await this.page.getByRole('link', { name: /^Admin$/ }).click();
     await expect(this.page).toHaveURL(this.adminUrlPattern, {
-      timeout: ORANGE_HRM_POST_SUBMIT_TIMEOUT,
+      timeout: ORANGE_HRM_UI_TIMEOUT,
     });
     await this.expectLoaded();
   }

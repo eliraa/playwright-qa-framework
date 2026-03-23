@@ -1,8 +1,8 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { UserRole } from './admin-users-filter.component';
 import {
-  ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
   ORANGE_HRM_LOADING_OVERLAY_APPEAR_TIMEOUT,
+  ORANGE_HRM_UI_TIMEOUT,
 } from '../orangehrm.constants';
 
 type VisibleUserRow = {
@@ -19,14 +19,16 @@ export class AdminUsersTableComponent {
   readonly noRecordsMessage: Locator;
 
   constructor(private readonly page: Page) {
-    this.table = page.getByRole('table').first();
+    this.table = page.getByRole('table');
     this.userRows = this.table.getByRole('row').filter({ has: page.getByRole('cell') });
-    this.loadingSpinner = page.locator('.oxd-loading-spinner').first();
-    this.noRecordsMessage = page.getByText(/No\s+Records?\s+Found|Keine.*gefunden/i).last();
+    this.loadingSpinner = page.locator('.oxd-loading-spinner');
+    this.noRecordsMessage = page
+      .locator('.orangehrm-horizontal-padding.orangehrm-vertical-padding')
+      .getByText(/No\s+Records?\s+Found|Keine.*gefunden/i);
   }
 
   async expectReady(): Promise<void> {
-    await expect(this.table).toBeVisible({ timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT });
+    await expect(this.table).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
   }
 
   async waitForUsersQueryToComplete(): Promise<void> {
@@ -36,7 +38,7 @@ export class AdminUsersTableComponent {
         && /\/api\/v2\/admin\/users/.test(response.url())
         && response.ok(),
       {
-        timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
+        timeout: ORANGE_HRM_UI_TIMEOUT,
       },
     );
   }
@@ -46,7 +48,7 @@ export class AdminUsersTableComponent {
     await this.expectReady();
     await expect
       .poll(async () => this.hasFinishedSearchState(previousRowsText), {
-        timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
+        timeout: ORANGE_HRM_UI_TIMEOUT,
       })
       .toBe(true);
   }
@@ -60,13 +62,11 @@ export class AdminUsersTableComponent {
   }
 
   async isUserVisible(username: string): Promise<boolean> {
-    const visibleRows = await this.getVisibleUserRows();
-
-    return visibleRows.some((row) => row.username === username);
+    return this.userRowByUsername(username).isVisible();
   }
 
   async expectUserVisible(username: string): Promise<void> {
-    expect(await this.isUserVisible(username)).toBe(true);
+    await expect(this.userRowByUsername(username)).toBeVisible();
   }
 
   async expectResultsToContain(text: string): Promise<void> {
@@ -109,7 +109,7 @@ export class AdminUsersTableComponent {
       });
       await this.loadingSpinner.waitFor({
         state: 'hidden',
-        timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
+        timeout: ORANGE_HRM_UI_TIMEOUT,
       });
     } catch {
       // The live demo sometimes completes fast enough that no spinner is exposed.
@@ -142,6 +142,14 @@ export class AdminUsersTableComponent {
     return this.noRecordsMessage.isVisible();
   }
 
+  private userRowByUsername(username: string): Locator {
+    return this.userRows.filter({
+      has: this.page.getByRole('cell', {
+        name: new RegExp(`^${escapeForRegex(username)}$`),
+      }),
+    }).first();
+  }
+
   private async getVisibleUserRows(): Promise<VisibleUserRow[]> {
     return this.userRows.evaluateAll((rows) => {
       const normalize = (value: string | null | undefined): string =>
@@ -166,4 +174,8 @@ export class AdminUsersTableComponent {
         .filter((row) => row.username.length > 0);
     });
   }
+}
+
+function escapeForRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

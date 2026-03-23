@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { ORANGE_HRM_ADMIN_SEARCH_TIMEOUT } from '../orangehrm.constants';
+import { ORANGE_HRM_UI_TIMEOUT } from '../orangehrm.constants';
 
 export type UserRole = 'Admin' | 'ESS';
 export type UserStatus = 'Enabled' | 'Disabled';
@@ -13,7 +13,7 @@ export class AdminUsersFilterComponent {
   readonly resetButton: Locator;
 
   constructor(private readonly page: Page) {
-    const adminForm = page.locator('form').first();
+    const adminForm = page.locator('form');
     const visibleFilterInputs = adminForm.locator('input:not([type="hidden"])');
     const filterDropdowns = adminForm.locator('.oxd-select-text');
 
@@ -21,13 +21,13 @@ export class AdminUsersFilterComponent {
     this.usernameInput = visibleFilterInputs.nth(0);
     this.userRoleDropdown = filterDropdowns.nth(0);
     this.statusDropdown = filterDropdowns.nth(1);
-    this.searchButton = adminForm.locator('button[type="submit"]').first();
-    this.resetButton = adminForm.locator('button[type="button"]').first();
+    this.searchButton = adminForm.getByRole('button', { name: /^Search$/ });
+    this.resetButton = adminForm.getByRole('button', { name: /^Reset$/ });
   }
 
   async expectReady(): Promise<void> {
-    await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT });
-    await expect(this.searchButton).toBeVisible({ timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT });
+    await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+    await expect(this.searchButton).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
   }
 
   async setUsername(username: string): Promise<void> {

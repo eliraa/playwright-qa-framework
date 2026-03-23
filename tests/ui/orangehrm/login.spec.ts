@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { orangeHrmUsers } from '../../../src/data/users/orangehrm.users';
 import { DashboardPage } from '../../../src/pages/orangehrm/dashboard.page';
 import { LoginPage } from '../../../src/pages/orangehrm/login.page';
-import { ORANGE_HRM_POST_SUBMIT_TIMEOUT } from '../../../src/pages/orangehrm/orangehrm.constants';
+import { ORANGE_HRM_UI_TIMEOUT } from '../../../src/pages/orangehrm/orangehrm.constants';
 
 test.describe('OrangeHRM login', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'OrangeHRM coverage is stabilized in Chromium first.');
@@ -29,7 +29,6 @@ test.describe('OrangeHRM login', () => {
 
   test('shows an error message for invalid credentials', async ({ page }) => {
     const loginPage = new LoginPage(page);
-    const invalidCredentialsAlert = page.locator('.oxd-alert').first();
 
     await test.step('Open the OrangeHRM login page', async () => {
       await loginPage.open();
@@ -43,7 +42,7 @@ test.describe('OrangeHRM login', () => {
     });
 
     await test.step('Verify the invalid credentials message is shown', async () => {
-      await expect(invalidCredentialsAlert).toBeVisible({ timeout: ORANGE_HRM_POST_SUBMIT_TIMEOUT });
+      await expect(loginPage.invalidCredentialsAlert).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
       await expect(loginPage.invalidCredentialsMessage).toContainText('Invalid credentials');
     });
   });
