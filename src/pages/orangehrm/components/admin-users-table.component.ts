@@ -1,5 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { UserRole } from './admin-users-filter.component';
+import {
+  ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
+  ORANGE_HRM_LOADING_OVERLAY_APPEAR_TIMEOUT,
+} from '../orangehrm.constants';
 
 type VisibleUserRow = {
   username: string;
@@ -22,7 +26,7 @@ export class AdminUsersTableComponent {
   }
 
   async expectReady(): Promise<void> {
-    await expect(this.table).toBeVisible();
+    await expect(this.table).toBeVisible({ timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT });
   }
 
   async waitForUsersQueryToComplete(): Promise<void> {
@@ -32,17 +36,17 @@ export class AdminUsersTableComponent {
         && /\/api\/v2\/admin\/users/.test(response.url())
         && response.ok(),
       {
-        timeout: 15_000,
+        timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
       },
     );
   }
 
-  async waitForSearchToSettle(): Promise<void> {
+  async waitForSearchToSettle(previousRowsText: string[] = []): Promise<void> {
     await this.waitForLoadingOverlayToDisappear();
     await this.expectReady();
     await expect
-      .poll(async () => this.hasFinishedSearchState(), {
-        timeout: 15_000,
+      .poll(async () => this.hasFinishedSearchState(previousRowsText), {
+        timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
       })
       .toBe(true);
   }
@@ -99,14 +103,20 @@ export class AdminUsersTableComponent {
 
   private async waitForLoadingOverlayToDisappear(): Promise<void> {
     try {
-      await this.loadingSpinner.waitFor({ state: 'visible', timeout: 2_000 });
-      await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 15_000 });
+      await this.loadingSpinner.waitFor({
+        state: 'visible',
+        timeout: ORANGE_HRM_LOADING_OVERLAY_APPEAR_TIMEOUT,
+      });
+      await this.loadingSpinner.waitFor({
+        state: 'hidden',
+        timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT,
+      });
     } catch {
       // The live demo sometimes completes fast enough that no spinner is exposed.
     }
   }
 
-  private async hasFinishedSearchState(): Promise<boolean> {
+  private async hasFinishedSearchState(previousRowsText: string[]): Promise<boolean> {
     if (await this.loadingSpinner.isVisible()) {
       return false;
     }
@@ -115,7 +125,17 @@ export class AdminUsersTableComponent {
       return true;
     }
 
-    return (await this.getVisibleUserRows()).length > 0;
+    const currentRowsText = await this.getVisibleRowsText();
+
+    if (currentRowsText.length === 0) {
+      return false;
+    }
+
+    if (previousRowsText.length === 0) {
+      return true;
+    }
+
+    return currentRowsText.join(' || ') !== previousRowsText.join(' || ');
   }
 
   private async hasVisibleEmptyState(): Promise<boolean> {

@@ -5,6 +5,7 @@ import {
   type UserStatus,
 } from './components/admin-users-filter.component';
 import { AdminUsersTableComponent } from './components/admin-users-table.component';
+import { ORANGE_HRM_POST_SUBMIT_TIMEOUT } from './orangehrm.constants';
 
 export type { UserRole, UserStatus } from './components/admin-users-filter.component';
 
@@ -21,8 +22,13 @@ export class AdminPage {
 
   async open(): Promise<void> {
     await this.page.locator('a[href*="/admin/viewAdminModule"]').first().click();
-    await this.page.waitForURL(this.adminUrlPattern);
-    await expect(this.page.locator('.oxd-topbar-header-breadcrumb h6').first()).toBeVisible();
+    await expect(this.page).toHaveURL(this.adminUrlPattern, {
+      timeout: ORANGE_HRM_POST_SUBMIT_TIMEOUT,
+    });
+    await this.expectLoaded();
+  }
+
+  async expectLoaded(): Promise<void> {
     await this.filters.expectReady();
     await this.usersTable.expectReady();
   }
@@ -40,11 +46,12 @@ export class AdminPage {
   }
 
   async clickSearch(): Promise<void> {
+    const previousRowsText = await this.usersTable.getVisibleRowsText();
     const usersQuery = this.usersTable.waitForUsersQueryToComplete();
 
     await this.filters.submitSearch();
     await usersQuery;
-    await this.usersTable.waitForSearchToSettle();
+    await this.usersTable.waitForSearchToSettle(previousRowsText);
   }
 
   async searchUserByUsername(username: string): Promise<void> {
@@ -64,11 +71,12 @@ export class AdminPage {
   }
 
   async resetFilters(): Promise<void> {
+    const previousRowsText = await this.usersTable.getVisibleRowsText();
     const usersQuery = this.usersTable.waitForUsersQueryToComplete();
 
     await this.filters.reset();
     await usersQuery;
-    await this.usersTable.waitForSearchToSettle();
+    await this.usersTable.waitForSearchToSettle(previousRowsText);
     await this.filters.expectReset();
   }
 

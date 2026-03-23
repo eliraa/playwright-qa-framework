@@ -12,7 +12,7 @@ test.describe('OrangeHRM dashboard', () => {
     });
 
     await test.step('Verify the authenticated dashboard is visible', async () => {
-      await expect(dashboardPage.dashboardHeader).toBeVisible();
+      await dashboardPage.expectLoaded();
     });
   });
 });

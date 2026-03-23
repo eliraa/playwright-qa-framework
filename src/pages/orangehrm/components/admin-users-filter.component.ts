@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { ORANGE_HRM_ADMIN_SEARCH_TIMEOUT } from '../orangehrm.constants';
 
 export type UserRole = 'Admin' | 'ESS';
 export type UserStatus = 'Enabled' | 'Disabled';
@@ -25,8 +26,8 @@ export class AdminUsersFilterComponent {
   }
 
   async expectReady(): Promise<void> {
-    await expect(this.usernameInput).toBeVisible();
-    await expect(this.searchButton).toBeVisible();
+    await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT });
+    await expect(this.searchButton).toBeVisible({ timeout: ORANGE_HRM_ADMIN_SEARCH_TIMEOUT });
   }
 
   async setUsername(username: string): Promise<void> {

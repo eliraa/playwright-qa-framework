@@ -1,4 +1,4 @@
-import { expect, test as base, type Page } from '@playwright/test';
+import { test as base, type Page } from '@playwright/test';
 import { orangeHrmUsers } from '../data/users/orangehrm.users';
 import { DashboardPage } from '../pages/orangehrm/dashboard.page';
 import { LoginPage } from '../pages/orangehrm/login.page';
@@ -17,8 +17,7 @@ export const test = base.extend<AuthFixtures>({
       orangeHrmUsers.valid.username,
       orangeHrmUsers.valid.password,
     );
-    await page.waitForURL(dashboardPage.dashboardUrlPattern, { timeout: 15_000 });
-    await expect(dashboardPage.dashboardHeader).toBeVisible();
+    await dashboardPage.expectLoaded();
 
     await use(page);
   },
