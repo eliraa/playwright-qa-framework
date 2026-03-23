@@ -1,5 +1,5 @@
 import { DashboardPage } from '../../../src/pages/orangehrm/dashboard.page';
-import { expect, test } from '../../../src/fixtures/auth.fixture';
+import { expect, test } from '../../../src/fixtures/orangehrm/auth.fixture';
 
 test.describe('OrangeHRM dashboard', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'OrangeHRM coverage is stabilized in Chromium first.');

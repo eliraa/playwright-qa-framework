@@ -14,6 +14,8 @@ export class AdminUsersFilterComponent {
 
   constructor(private readonly page: Page) {
     const adminForm = page.locator('form');
+    // OrangeHRM renders visible labels here, but they are not programmatically tied to the
+    // controls, so we keep the unavoidable index-based mapping localized in this component.
     const visibleFilterInputs = adminForm.locator('input:not([type="hidden"])');
     const filterDropdowns = adminForm.locator('.oxd-select-text');
 

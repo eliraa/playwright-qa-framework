@@ -22,6 +22,7 @@ export class AdminUsersTableComponent {
     this.table = page.getByRole('table');
     this.userRows = this.table.getByRole('row').filter({ has: page.getByRole('cell') });
     this.loadingSpinner = page.locator('.oxd-loading-spinner');
+    // The same text also appears in a toast, so scope the empty state to the results area.
     this.noRecordsMessage = page
       .locator('.orangehrm-horizontal-padding.orangehrm-vertical-padding')
       .getByText(/No\s+Records?\s+Found|Keine.*gefunden/i);
@@ -46,6 +47,8 @@ export class AdminUsersTableComponent {
   async waitForSearchToSettle(previousRowsText: string[] = []): Promise<void> {
     await this.waitForLoadingOverlayToDisappear();
     await this.expectReady();
+    // The demo can keep stale rows visible briefly after the response resolves, so wait for
+    // either a real empty state or a changed set of visible rows.
     await expect
       .poll(async () => this.hasFinishedSearchState(previousRowsText), {
         timeout: ORANGE_HRM_UI_TIMEOUT,
@@ -151,6 +154,8 @@ export class AdminUsersTableComponent {
   }
 
   private async getVisibleUserRows(): Promise<VisibleUserRow[]> {
+    // OrangeHRM does not expose a reliable semantic column contract for these cells,
+    // so keep the DOM-based row parsing contained in one place.
     return this.userRows.evaluateAll((rows) => {
       const normalize = (value: string | null | undefined): string =>
         (value ?? '')

@@ -18,6 +18,8 @@ export class DashboardPage {
   }
 
   async expectLoaded(): Promise<void> {
+    // The demo often updates the route before the authenticated shell is fully usable.
+    // Gate on stable dashboard UI first, then confirm the final URL.
     await expect(this.adminNavLink).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
     await expect(this.dashboardHeading).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
     await expect(this.page).toHaveURL(this.dashboardUrlPattern, {

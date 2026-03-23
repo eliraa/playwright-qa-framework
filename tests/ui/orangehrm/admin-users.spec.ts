@@ -1,17 +1,17 @@
 import { AdminPage } from '../../../src/pages/orangehrm/admin.page';
-import { test } from '../../../src/fixtures/auth.fixture';
+import { test } from '../../../src/fixtures/orangehrm/auth.fixture';
 
 test.describe('OrangeHRM admin users', () => {
   test.describe.configure({ mode: 'serial' });
   test.skip(({ browserName }) => browserName !== 'chromium', 'OrangeHRM coverage is stabilized in Chromium first.');
+  let adminPage: AdminPage;
 
-  test('searches for the Admin user in the users table', async ({ loggedInPage }) => {
-    const adminPage = new AdminPage(loggedInPage);
+  test.beforeEach(async ({ loggedInPage }) => {
+    adminPage = new AdminPage(loggedInPage);
+    await adminPage.open();
+  });
 
-    await test.step('Open the Admin users page', async () => {
-      await adminPage.open();
-    });
-
+  test('searches for the Admin user in the users table', async () => {
     await test.step('Search for the Admin user', async () => {
       await adminPage.searchUserByUsername('Admin');
     });
@@ -22,13 +22,7 @@ test.describe('OrangeHRM admin users', () => {
     });
   });
 
-  test('filters the users table by Admin role', async ({ loggedInPage }) => {
-    const adminPage = new AdminPage(loggedInPage);
-
-    await test.step('Open the Admin users page', async () => {
-      await adminPage.open();
-    });
-
+  test('filters the users table by Admin role', async () => {
     await test.step('Search for Admin users by role', async () => {
       await adminPage.searchByUserRole('Admin');
     });
@@ -39,13 +33,8 @@ test.describe('OrangeHRM admin users', () => {
     });
   });
 
-  test('does not show a row for a random username', async ({ loggedInPage }) => {
-    const adminPage = new AdminPage(loggedInPage);
+  test('does not show a row for a random username', async () => {
     const randomUsername = `no-user-${Date.now()}`;
-
-    await test.step('Open the Admin users page', async () => {
-      await adminPage.open();
-    });
 
     await test.step('Search for a username that should not exist', async () => {
       await adminPage.searchUserByUsername(randomUsername);
@@ -56,13 +45,7 @@ test.describe('OrangeHRM admin users', () => {
     });
   });
 
-  test('combines username and role filters for the Admin user', async ({ loggedInPage }) => {
-    const adminPage = new AdminPage(loggedInPage);
-
-    await test.step('Open the Admin users page', async () => {
-      await adminPage.open();
-    });
-
+  test('combines username and role filters for the Admin user', async () => {
     await test.step('Search for the Admin user with the Admin role filter', async () => {
       await adminPage.searchByUsernameAndRole('Admin', 'Admin');
     });

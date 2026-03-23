@@ -55,11 +55,7 @@ export default defineConfig({
         baseURL: localBaseURL,
       },
       testIgnore: [
-        'tests/autoWaiting.spec.ts',
-        'tests/dynamicElements.spec.ts',
-        'tests/visibility.spec.ts',
-        'tests/ajax.spec.ts',
-        'tests/geolocation.spec.ts',
+        'tests/ui/playground/**/*.spec.ts',
         'tests/ui/orangehrm/**/*.spec.ts',
       ],
     },
