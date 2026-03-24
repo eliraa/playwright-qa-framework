@@ -7,6 +7,7 @@
     "test": "npx playwright test --project=chromium-playground",
     "test:all": "npx playwright test",
     "test:chromium": "npx playwright test --project=chromium-playground",
+    "test:orangehrm": "npx playwright test tests/ui/orangehrm --project=chromium-orangehrm-live --workers=1",
     "test:firefox": "npx playwright test --project=firefox-playground",
     "test:headed": "npx playwright test --project=chromium-playground --headed",
     "test:ui": "npx playwright test --project=chromium-playground --ui",

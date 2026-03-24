@@ -4,28 +4,34 @@ import { getLocalBaseUrl, getRemoteBaseUrl } from './src/config/testEnvironment'
 
 dotenv.config();
 
+const isCI = !!process.env.CI;
 const localBaseURL = getLocalBaseUrl();
 const playgroundBaseURL = getRemoteBaseUrl('playground');
+const orangeHrmBaseURL = getRemoteBaseUrl('orangehrm');
 
 export default defineConfig({
   testDir: './tests',
   timeout: 40_000,
   globalTimeout: 10 * 60 * 1000,
+  forbidOnly: isCI,
 
   expect: {
     timeout: 5_000,
   },
 
   fullyParallel: true,
-  retries: 1,
-  reporter: [['html'], ['list']],
+  retries: isCI ? 1 : 0,
+  reporter: isCI
+    ? [['github'], ['html'], ['list']]
+    : [['html'], ['list']],
 
   use: {
     viewport: null,
     launchOptions: {
       args: ['--start-maximized'],
     },
-    trace: 'on-first-retry',
+    trace: isCI ? 'retain-on-failure' : 'on-first-retry',
+    screenshot: isCI ? 'only-on-failure' : 'off',
     actionTimeout: 20_000,
     navigationTimeout: 25_000,
     video: 'off',
@@ -39,6 +45,8 @@ export default defineConfig({
         baseURL: playgroundBaseURL,
         ignoreHTTPSErrors: true,
       },
+      // Keep the main Chromium signal limited to the stable playground coverage.
+      testIgnore: ['tests/ui/orangehrm/**/*.spec.ts'],
     },
     {
       name: 'firefox-playground',
@@ -49,6 +57,17 @@ export default defineConfig({
       },
       // OrangeHRM is intentionally stabilized in Chromium first.
       testIgnore: ['tests/ui/orangehrm/**/*.spec.ts'],
+    },
+    {
+      name: 'chromium-orangehrm-live',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: orangeHrmBaseURL,
+        ignoreHTTPSErrors: true,
+      },
+      // This project keeps the live OrangeHRM demo coverage available without making it
+      // part of the main blocking suite.
+      testMatch: ['tests/ui/orangehrm/**/*.spec.ts'],
     },
     {
       name: 'chromium-local',

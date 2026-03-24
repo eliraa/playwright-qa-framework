@@ -86,7 +86,19 @@ This project reflects my approach to QA:
 
 npm install
 npx playwright install
-npx playwright test
+
+Stable main suite:
+`npm test`
+
+Full repo suite, including live OrangeHRM coverage:
+`npm run test:all`
+
+OrangeHRM live demo suite:
+`npm run test:orangehrm`
+
+The main CI workflow uses the stable playground suite. OrangeHRM stays in the repo as
+separate live-demo coverage because the external demo environment is not reliable enough
+to be the primary blocking CI signal.
 
 ---
 
