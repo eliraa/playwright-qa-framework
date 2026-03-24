@@ -1,6 +1,6 @@
 # Playwright Automation Framework (TypeScript)
 
-A QA automation project built with **Playwright + TypeScript**, focused on scalable test structure, real-world scenarios and combining UI testing with backend-aware validation.
+A QA automation live demo project built with **Playwright + TypeScript**, focused on scalable test structure, real-world scenarios and combining UI testing with backend-aware validation.
 
 ---
 
