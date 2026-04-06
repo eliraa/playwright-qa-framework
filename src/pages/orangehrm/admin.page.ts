@@ -4,10 +4,14 @@ import {
   type UserRole,
   type UserStatus,
 } from './components/admin-users-filter.component';
-import { AdminUsersTableComponent } from './components/admin-users-table.component';
+import {
+  AdminUsersTableComponent,
+  type AdminUsersTableRow,
+} from './components/admin-users-table.component';
 import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export type { UserRole, UserStatus } from './components/admin-users-filter.component';
+export type { AdminUsersTableRow } from './components/admin-users-table.component';
 
 export class AdminPage {
   readonly filters: AdminUsersFilterComponent;
@@ -21,11 +25,18 @@ export class AdminPage {
   }
 
   async open(): Promise<void> {
+    const initialUsersQuery = this.usersTable.waitForUsersQueryToComplete();
+
     await this.page.getByRole('link', { name: /^Admin$/ }).click();
     await expect(this.page).toHaveURL(this.adminUrlPattern, {
       timeout: ORANGE_HRM_UI_TIMEOUT,
     });
     await this.expectLoaded();
+    // The Admin shell becomes visible before the first users query reliably settles,
+    // so finish that initial data load here to avoid a late live response overwriting
+    // the next search state.
+    await initialUsersQuery;
+    await this.usersTable.waitForSearchToSettle();
   }
 
   async expectLoaded(): Promise<void> {
@@ -102,5 +113,13 @@ export class AdminPage {
 
   async expectNoResultsFor(username: string): Promise<void> {
     await this.usersTable.expectNoResultsFor(username);
+  }
+
+  async expectVisibleRowCount(expectedCount: number): Promise<void> {
+    await this.usersTable.expectVisibleRowCount(expectedCount);
+  }
+
+  async expectVisibleRows(expectedRows: AdminUsersTableRow[]): Promise<void> {
+    await this.usersTable.expectVisibleRows(expectedRows);
   }
 }

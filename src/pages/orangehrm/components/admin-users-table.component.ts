@@ -4,8 +4,9 @@ import {
   ORANGE_HRM_LOADING_OVERLAY_APPEAR_TIMEOUT,
   ORANGE_HRM_UI_TIMEOUT,
 } from '../orangehrm.constants';
+import { isOrangeHrmAdminUsersResponse } from '../../../support/orangehrm/admin-users.api';
 
-type VisibleUserRow = {
+export type AdminUsersTableRow = {
   username: string;
   role: string;
   employeeName: string;
@@ -34,10 +35,7 @@ export class AdminUsersTableComponent {
 
   async waitForUsersQueryToComplete(): Promise<void> {
     await this.page.waitForResponse(
-      (response) =>
-        response.request().method() === 'GET'
-        && /\/api\/v2\/admin\/users/.test(response.url())
-        && response.ok(),
+      (response) => isOrangeHrmAdminUsersResponse(response) && response.ok(),
       {
         timeout: ORANGE_HRM_UI_TIMEOUT,
       },
@@ -104,6 +102,20 @@ export class AdminUsersTableComponent {
     await expect(this.table).not.toContainText(username);
   }
 
+  async expectVisibleRowCount(expectedCount: number): Promise<void> {
+    const visibleRows = await this.getVisibleUserRows();
+
+    expect(visibleRows).toHaveLength(expectedCount);
+  }
+
+  async expectVisibleRows(expectedRows: AdminUsersTableRow[]): Promise<void> {
+    const visibleRows = await this.getVisibleUserRows();
+
+    expect(normalizeRowsForComparison(visibleRows)).toEqual(
+      normalizeRowsForComparison(expectedRows),
+    );
+  }
+
   private async waitForLoadingOverlayToDisappear(): Promise<void> {
     try {
       await this.loadingSpinner.waitFor({
@@ -153,7 +165,7 @@ export class AdminUsersTableComponent {
     }).first();
   }
 
-  private async getVisibleUserRows(): Promise<VisibleUserRow[]> {
+  private async getVisibleUserRows(): Promise<AdminUsersTableRow[]> {
     // OrangeHRM does not expose a reliable semantic column contract for these cells,
     // so keep the DOM-based row parsing contained in one place.
     return this.userRows.evaluateAll((rows) => {
@@ -183,4 +195,14 @@ export class AdminUsersTableComponent {
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeRowsForComparison(rows: AdminUsersTableRow[]): AdminUsersTableRow[] {
+  return [...rows].sort((leftRow, rightRow) =>
+    [leftRow.username, leftRow.role, leftRow.employeeName, leftRow.status]
+      .join('|')
+      .localeCompare(
+        [rightRow.username, rightRow.role, rightRow.employeeName, rightRow.status].join('|'),
+      ),
+  );
 }
