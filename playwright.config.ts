@@ -45,7 +45,7 @@ export default defineConfig({
         baseURL: playgroundBaseURL,
         ignoreHTTPSErrors: true,
       },
-      // Keep the main Chromium signal limited to the stable playground coverage.
+      // Keep the stable CI signal limited to the deterministic playground coverage.
       testIgnore: ['tests/ui/orangehrm/**/*.spec.ts'],
     },
     {
@@ -55,7 +55,7 @@ export default defineConfig({
         baseURL: playgroundBaseURL,
         ignoreHTTPSErrors: true,
       },
-      // OrangeHRM is intentionally stabilized in Chromium first.
+      // Playground remains the cross-browser practice area.
       testIgnore: ['tests/ui/orangehrm/**/*.spec.ts'],
     },
     {
@@ -65,8 +65,22 @@ export default defineConfig({
         baseURL: orangeHrmBaseURL,
         ignoreHTTPSErrors: true,
       },
-      // This project keeps the live OrangeHRM demo coverage available without making it
-      // part of the main blocking suite.
+      // OrangeHRM is the primary showcase, but it stays out of the blocking CI gate because
+      // the external demo environment is not a trustworthy availability signal.
+      testMatch: ['tests/ui/orangehrm/**/*.spec.ts'],
+    },
+    {
+      name: 'chromium-orangehrm-debug',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: orangeHrmBaseURL,
+        ignoreHTTPSErrors: true,
+        trace: 'retain-on-failure',
+        screenshot: 'only-on-failure',
+        video: 'retain-on-failure',
+      },
+      // Opt-in debugging project for first-failure evidence on the live OrangeHRM demo.
+      outputDir: 'test-results/orangehrm-debug',
       testMatch: ['tests/ui/orangehrm/**/*.spec.ts'],
     },
     {

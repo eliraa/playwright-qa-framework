@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import {
   AdminUsersFilterComponent,
   type UserRole,
@@ -8,35 +8,57 @@ import {
   AdminUsersTableComponent,
   type AdminUsersTableRow,
 } from './components/admin-users-table.component';
+import {
+  describeOrangeHrmDebugError,
+  logOrangeHrmDebug,
+} from '../../support/orangehrm/live-debug';
 import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export type { UserRole, UserStatus } from './components/admin-users-filter.component';
 export type { AdminUsersTableRow } from './components/admin-users-table.component';
 
 export class AdminPage {
+  readonly adminNavLink: Locator;
   readonly filters: AdminUsersFilterComponent;
   readonly usersTable: AdminUsersTableComponent;
   readonly adminUrlPattern: RegExp;
 
   constructor(private readonly page: Page) {
+    this.adminNavLink = page.getByRole('link', { name: /^Admin$/i });
     this.filters = new AdminUsersFilterComponent(page);
     this.usersTable = new AdminUsersTableComponent(page);
     this.adminUrlPattern = /\/web\/index\.php\/admin\/viewSystemUsers/;
   }
 
   async open(): Promise<void> {
+    const openStartedAt = Date.now();
     const initialUsersQuery = this.usersTable.waitForUsersQueryToComplete();
 
-    await this.page.getByRole('link', { name: /^Admin$/ }).click();
-    await expect(this.page).toHaveURL(this.adminUrlPattern, {
-      timeout: ORANGE_HRM_UI_TIMEOUT,
-    });
-    await this.expectLoaded();
-    // The Admin shell becomes visible before the first users query reliably settles,
-    // so finish that initial data load here to avoid a late live response overwriting
-    // the next search state.
-    await initialUsersQuery;
-    await this.usersTable.waitForSearchToSettle();
+    logOrangeHrmDebug(this.page, 'Opening OrangeHRM Admin page');
+
+    try {
+      await this.adminNavLink.click();
+      await expect(this.page).toHaveURL(this.adminUrlPattern, {
+        timeout: ORANGE_HRM_UI_TIMEOUT,
+      });
+      await this.expectLoaded();
+      // The Admin shell becomes visible before the first users query reliably settles,
+      // so finish that initial data load here to avoid a late live response overwriting
+      // the next search state.
+      await initialUsersQuery;
+      await this.usersTable.waitForSearchToSettle();
+      logOrangeHrmDebug(this.page, 'OrangeHRM Admin page finished loading', {
+        durationMs: Date.now() - openStartedAt,
+        currentUrl: this.page.url(),
+      });
+    } catch (error) {
+      logOrangeHrmDebug(this.page, 'OrangeHRM Admin page failed to load', {
+        durationMs: Date.now() - openStartedAt,
+        currentUrl: this.page.url(),
+        error: describeOrangeHrmDebugError(error),
+      });
+      throw error;
+    }
   }
 
   async expectLoaded(): Promise<void> {
@@ -59,10 +81,29 @@ export class AdminPage {
   async clickSearch(): Promise<void> {
     const previousRowsText = await this.usersTable.getVisibleRowsText();
     const usersQuery = this.usersTable.waitForUsersQueryToComplete();
+    const searchStartedAt = Date.now();
 
-    await this.filters.submitSearch();
-    await usersQuery;
-    await this.usersTable.waitForSearchToSettle(previousRowsText);
+    logOrangeHrmDebug(this.page, 'Submitting Admin Users search', {
+      previousVisibleRows: previousRowsText.length,
+      currentUrl: this.page.url(),
+    });
+
+    try {
+      await this.filters.submitSearch();
+      await usersQuery;
+      await this.usersTable.waitForSearchToSettle(previousRowsText);
+      logOrangeHrmDebug(this.page, 'Admin Users search finished', {
+        durationMs: Date.now() - searchStartedAt,
+        currentUrl: this.page.url(),
+      });
+    } catch (error) {
+      logOrangeHrmDebug(this.page, 'Admin Users search failed', {
+        durationMs: Date.now() - searchStartedAt,
+        currentUrl: this.page.url(),
+        error: describeOrangeHrmDebugError(error),
+      });
+      throw error;
+    }
   }
 
   async searchUserByUsername(username: string): Promise<void> {

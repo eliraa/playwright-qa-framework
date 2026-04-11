@@ -1,12 +1,12 @@
-name: Playwright CI
+name: Playwright Checks
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 jobs:
-  test:
-    name: Chromium E2E
+  stable-practice:
+    name: Stable Practice Coverage
     timeout-minutes: 60
     runs-on: ubuntu-latest
     env:
@@ -31,11 +31,11 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
-    - name: Run Playwright tests
-      # Keep the blocking CI signal limited to the stable playground suite.
-      # The external OrangeHRM demo is run separately because its availability is not a
-      # trustworthy CI gate.
-      run: npm test
+    - name: Run stable Playwright suite
+      # OrangeHRM is the primary showcase in the repository, but the public demo environment
+      # is not reliable enough to be the blocking CI gate. Keep CI anchored to the stable
+      # secondary practice coverage instead.
+      run: npm run test:playground
     - name: Upload Playwright HTML report
       uses: actions/upload-artifact@v4
       if: ${{ failure() && !cancelled() }}

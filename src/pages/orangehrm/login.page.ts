@@ -1,5 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { buildAppUrl } from '../../config/testEnvironment';
+import {
+  describeOrangeHrmDebugError,
+  logOrangeHrmDebug,
+} from '../../support/orangehrm/live-debug';
 import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export class LoginPage {
@@ -17,16 +21,41 @@ export class LoginPage {
     this.usernameInput = page.getByPlaceholder(/^Username$/i);
     this.passwordInput = page.getByPlaceholder(/^Password$/i);
     this.loginButton = page.getByRole('button', { name: /^Login$/i });
-    this.invalidCredentialsMessage = page.getByText(/^Invalid credentials$/i);
+    // OrangeHRM does not expose a dependable alert role on this banner, so keep the
+    // CSS fallback isolated here and scope the text lookup to the banner itself.
     this.invalidCredentialsAlert = page.locator('.oxd-alert').filter({
-      has: this.invalidCredentialsMessage,
-    });
+      has: page.getByText(/^Invalid credentials$/i),
+    }).first();
+    this.invalidCredentialsMessage = this.invalidCredentialsAlert.getByText(
+      /^Invalid credentials$/i,
+    );
   }
 
   async open(): Promise<void> {
-    await this.page.goto(buildAppUrl('/web/index.php/auth/login', 'orangehrm'), {
-      waitUntil: 'domcontentloaded',
+    const loginUrl = buildAppUrl('/web/index.php/auth/login', 'orangehrm');
+    const navigationStartedAt = Date.now();
+
+    logOrangeHrmDebug(this.page, 'Navigating to OrangeHRM login page', {
+      url: loginUrl,
     });
+
+    try {
+      await this.page.goto(loginUrl, {
+        waitUntil: 'domcontentloaded',
+      });
+      logOrangeHrmDebug(this.page, 'OrangeHRM login navigation completed', {
+        durationMs: Date.now() - navigationStartedAt,
+        currentUrl: this.page.url(),
+      });
+    } catch (error) {
+      logOrangeHrmDebug(this.page, 'OrangeHRM login navigation failed', {
+        durationMs: Date.now() - navigationStartedAt,
+        currentUrl: this.page.url(),
+        error: describeOrangeHrmDebugError(error),
+      });
+      throw error;
+    }
+
     await expect(this.page).toHaveURL(this.loginUrlPattern, {
       timeout: ORANGE_HRM_UI_TIMEOUT,
     });
@@ -42,7 +71,18 @@ export class LoginPage {
   async expectReady(): Promise<void> {
     // The live demo can report the login route as loaded while the page is still blank.
     // Wait for the login shell first, then the actionable control.
-    await expect(this.loginHeading).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
-    await expect(this.loginButton).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+    try {
+      await expect(this.loginHeading).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+      await expect(this.loginButton).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+      logOrangeHrmDebug(this.page, 'OrangeHRM login page is ready', {
+        currentUrl: this.page.url(),
+      });
+    } catch (error) {
+      logOrangeHrmDebug(this.page, 'OrangeHRM login page did not become ready', {
+        currentUrl: this.page.url(),
+        error: describeOrangeHrmDebugError(error),
+      });
+      throw error;
+    }
   }
 }

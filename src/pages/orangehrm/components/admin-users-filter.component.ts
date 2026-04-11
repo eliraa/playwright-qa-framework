@@ -13,22 +13,22 @@ export class AdminUsersFilterComponent {
   readonly resetButton: Locator;
 
   constructor(private readonly page: Page) {
-    const adminForm = page.locator('form');
-    // OrangeHRM renders visible labels here, but they are not programmatically tied to the
-    // controls, so we keep the unavoidable index-based mapping localized in this component.
-    const visibleFilterInputs = adminForm.locator('input:not([type="hidden"])');
-    const filterDropdowns = adminForm.locator('.oxd-select-text');
+    const adminForm = page.locator('form').filter({
+      has: page.getByRole('button', { name: /^Search$/i }),
+    }).first();
 
     this.form = adminForm;
-    this.usernameInput = visibleFilterInputs.nth(0);
-    this.userRoleDropdown = filterDropdowns.nth(0);
-    this.statusDropdown = filterDropdowns.nth(1);
-    this.searchButton = adminForm.getByRole('button', { name: /^Search$/ });
-    this.resetButton = adminForm.getByRole('button', { name: /^Reset$/ });
+    this.usernameInput = this.textboxByLabel('Username');
+    this.userRoleDropdown = this.dropdownByLabel('User Role');
+    this.statusDropdown = this.dropdownByLabel('Status');
+    this.searchButton = adminForm.getByRole('button', { name: /^Search$/i });
+    this.resetButton = adminForm.getByRole('button', { name: /^Reset$/i });
   }
 
   async expectReady(): Promise<void> {
     await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+    await expect(this.userRoleDropdown).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+    await expect(this.statusDropdown).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
     await expect(this.searchButton).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
   }
 
@@ -37,15 +37,11 @@ export class AdminUsersFilterComponent {
   }
 
   async selectUserRole(role: UserRole): Promise<void> {
-    await this.userRoleDropdown.click();
-    await this.page.getByRole('option', { name: role }).click();
-    await expect(this.userRoleDropdown).toContainText(role);
+    await this.selectDropdownOption(this.userRoleDropdown, role);
   }
 
   async selectStatus(status: UserStatus): Promise<void> {
-    await this.statusDropdown.click();
-    await this.page.getByRole('option', { name: status }).click();
-    await expect(this.statusDropdown).toContainText(status);
+    await this.selectDropdownOption(this.statusDropdown, status);
   }
 
   async submitSearch(): Promise<void> {
@@ -59,4 +55,34 @@ export class AdminUsersFilterComponent {
   async expectReset(): Promise<void> {
     await expect(this.usernameInput).toHaveValue('');
   }
+
+  private dropdownByLabel(labelText: string): Locator {
+    // OrangeHRM renders the visible labels separately from these custom div-based dropdowns
+    // and does not expose a dependable combobox contract, so keep the relative DOM fallback here.
+    return this.labelAnchor(labelText).locator(
+      'xpath=following::*[contains(@class, "oxd-select-text")][1]',
+    );
+  }
+
+  private async selectDropdownOption(dropdown: Locator, optionName: string): Promise<void> {
+    await dropdown.click();
+    await this.page.getByRole('option', {
+      name: new RegExp(`^${escapeForRegex(optionName)}$`),
+    }).click();
+    await expect(dropdown).toContainText(optionName);
+  }
+
+  private textboxByLabel(labelText: string): Locator {
+    // The Username filter is not programmatically labeled in the OrangeHRM DOM, so anchor on
+    // the visible label text and keep the relative input lookup localized to this component.
+    return this.labelAnchor(labelText).locator('xpath=following::input[not(@type="hidden")][1]');
+  }
+
+  private labelAnchor(labelText: string): Locator {
+    return this.form.getByText(new RegExp(`^${escapeForRegex(labelText)}$`, 'i')).first();
+  }
+}
+
+function escapeForRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

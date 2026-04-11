@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
 import { orangeHrmUsers } from '../../../src/data/orangehrm/users';
+import { expect, test } from '../../../src/fixtures/orangehrm/live.fixture';
 import { DashboardPage } from '../../../src/pages/orangehrm/dashboard.page';
 import { LoginPage } from '../../../src/pages/orangehrm/login.page';
 import { ORANGE_HRM_UI_TIMEOUT } from '../../../src/pages/orangehrm/orangehrm.constants';

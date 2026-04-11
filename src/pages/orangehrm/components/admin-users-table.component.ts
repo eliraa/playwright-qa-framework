@@ -4,7 +4,14 @@ import {
   ORANGE_HRM_LOADING_OVERLAY_APPEAR_TIMEOUT,
   ORANGE_HRM_UI_TIMEOUT,
 } from '../orangehrm.constants';
-import { isOrangeHrmAdminUsersResponse } from '../../../support/orangehrm/admin-users.api';
+import {
+  getOrangeHrmAdminUsersQuery,
+  isOrangeHrmAdminUsersResponse,
+} from '../../../support/orangehrm/admin-users.api';
+import {
+  describeOrangeHrmDebugError,
+  logOrangeHrmDebug,
+} from '../../../support/orangehrm/live-debug';
 
 export type AdminUsersTableRow = {
   username: string;
@@ -13,19 +20,31 @@ export type AdminUsersTableRow = {
   status: string;
 };
 
+type AdminUsersColumnIndexes = {
+  username: number;
+  role: number;
+  employeeName: number;
+  status: number;
+};
+
 export class AdminUsersTableComponent {
+  readonly resultsCard: Locator;
   readonly table: Locator;
+  readonly headerCells: Locator;
   readonly userRows: Locator;
   readonly loadingSpinner: Locator;
   readonly noRecordsMessage: Locator;
 
   constructor(private readonly page: Page) {
-    this.table = page.getByRole('table');
+    this.table = page.getByRole('table').first();
+    this.headerCells = this.table.getByRole('columnheader');
     this.userRows = this.table.getByRole('row').filter({ has: page.getByRole('cell') });
+    this.resultsCard = page.locator('.orangehrm-paper-container').filter({
+      has: this.table,
+    }).first();
     this.loadingSpinner = page.locator('.oxd-loading-spinner');
-    // The same text also appears in a toast, so scope the empty state to the results area.
-    this.noRecordsMessage = page
-      .locator('.orangehrm-horizontal-padding.orangehrm-vertical-padding')
+    // The same text can appear in a toast, so keep the empty-state lookup tied to the table card.
+    this.noRecordsMessage = this.resultsCard
       .getByText(/No\s+Records?\s+Found|Keine.*gefunden/i);
   }
 
@@ -34,12 +53,37 @@ export class AdminUsersTableComponent {
   }
 
   async waitForUsersQueryToComplete(): Promise<void> {
-    await this.page.waitForResponse(
-      (response) => isOrangeHrmAdminUsersResponse(response) && response.ok(),
-      {
-        timeout: ORANGE_HRM_UI_TIMEOUT,
-      },
-    );
+    const waitStartedAt = Date.now();
+
+    logOrangeHrmDebug(this.page, 'Waiting for Admin Users API response', {
+      currentUrl: this.page.url(),
+    });
+
+    try {
+      const response = await this.page.waitForResponse(
+        (receivedResponse) => isOrangeHrmAdminUsersResponse(receivedResponse) && receivedResponse.ok(),
+        {
+          timeout: ORANGE_HRM_UI_TIMEOUT,
+        },
+      );
+      const query = getOrangeHrmAdminUsersQuery(response);
+
+      logOrangeHrmDebug(this.page, 'Admin Users API response received', {
+        durationMs: Date.now() - waitStartedAt,
+        status: response.status(),
+        url: response.url(),
+        username: query.get('username'),
+        limit: query.get('limit'),
+        offset: query.get('offset'),
+      });
+    } catch (error) {
+      logOrangeHrmDebug(this.page, 'Admin Users API response wait failed', {
+        durationMs: Date.now() - waitStartedAt,
+        currentUrl: this.page.url(),
+        error: describeOrangeHrmDebugError(error),
+      });
+      throw error;
+    }
   }
 
   async waitForSearchToSettle(previousRowsText: string[] = []): Promise<void> {
@@ -166,9 +210,11 @@ export class AdminUsersTableComponent {
   }
 
   private async getVisibleUserRows(): Promise<AdminUsersTableRow[]> {
-    // OrangeHRM does not expose a reliable semantic column contract for these cells,
-    // so keep the DOM-based row parsing contained in one place.
-    return this.userRows.evaluateAll((rows) => {
+    const columnIndexes = await this.getColumnIndexes();
+
+    // OrangeHRM does not expose stable test IDs or label relationships inside this grid,
+    // so keep the DOM-based parsing localized and resolve the data cells from visible headers.
+    return this.userRows.evaluateAll((rows, indexes: AdminUsersColumnIndexes) => {
       const normalize = (value: string | null | undefined): string =>
         (value ?? '')
           .split(/\r?\n/)
@@ -176,20 +222,43 @@ export class AdminUsersTableComponent {
           .filter(Boolean)
           .join(' | ');
 
+      const readCell = (cells: string[], index: number): string =>
+        index >= 0 ? cells[index] ?? '' : '';
+
       return rows
         .filter((row): row is HTMLElement => row instanceof HTMLElement && row.offsetParent !== null)
         .map((row) =>
           Array.from(row.querySelectorAll('[role="cell"]')).map((cell) => normalize(cell.textContent)),
         )
-        .filter((cells) => cells.length >= 5)
+        .filter((cells) => cells.length > 0)
         .map((cells) => ({
-          username: cells[1] ?? '',
-          role: cells[2] ?? '',
-          employeeName: cells[3] ?? '',
-          status: cells[4] ?? '',
+          username: readCell(cells, indexes.username),
+          role: readCell(cells, indexes.role),
+          employeeName: readCell(cells, indexes.employeeName),
+          status: readCell(cells, indexes.status),
         }))
         .filter((row) => row.username.length > 0);
-    });
+    }, columnIndexes);
+  }
+
+  private async getColumnIndexes(): Promise<AdminUsersColumnIndexes> {
+    const headerTexts = (await this.headerCells.allInnerTexts()).map((headerText) =>
+      normalizeWhitespace(headerText),
+    );
+
+    const columnIndexes = {
+      username: findHeaderIndex(headerTexts, /^Username$/i),
+      role: findHeaderIndex(headerTexts, /^User Role$/i),
+      employeeName: findHeaderIndex(headerTexts, /^Employee Name$/i),
+      status: findHeaderIndex(headerTexts, /^Status$/i),
+    };
+
+    expect(columnIndexes.username).toBeGreaterThanOrEqual(0);
+    expect(columnIndexes.role).toBeGreaterThanOrEqual(0);
+    expect(columnIndexes.employeeName).toBeGreaterThanOrEqual(0);
+    expect(columnIndexes.status).toBeGreaterThanOrEqual(0);
+
+    return columnIndexes;
   }
 }
 
@@ -205,4 +274,16 @@ function normalizeRowsForComparison(rows: AdminUsersTableRow[]): AdminUsersTable
         [rightRow.username, rightRow.role, rightRow.employeeName, rightRow.status].join('|'),
       ),
   );
+}
+
+function normalizeWhitespace(value: string): string {
+  return value
+    .split(/\r?\n/)
+    .map((textChunk) => textChunk.trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+function findHeaderIndex(headerTexts: string[], headerPattern: RegExp): number {
+  return headerTexts.findIndex((headerText) => headerPattern.test(headerText));
 }

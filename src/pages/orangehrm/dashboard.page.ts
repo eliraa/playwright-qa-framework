@@ -8,13 +8,15 @@ export class DashboardPage {
   readonly dashboardUrlPattern: RegExp;
 
   constructor(private readonly page: Page) {
-    this.adminNavLink = page.getByRole('link', { name: /^Admin$/ });
+    this.adminNavLink = page.getByRole('link', { name: /^Admin$/i });
     this.dashboardHeading = page.getByRole('heading', { name: /^Dashboard$/i });
     this.dashboardUrlPattern = /\/web\/index\.php\/dashboard\/index/;
   }
 
   async open(): Promise<void> {
-    await this.page.goto(buildAppUrl('/web/index.php/dashboard/index', 'orangehrm'));
+    await this.page.goto(buildAppUrl('/web/index.php/dashboard/index', 'orangehrm'), {
+      waitUntil: 'domcontentloaded',
+    });
   }
 
   async expectLoaded(): Promise<void> {
