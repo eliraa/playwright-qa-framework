@@ -1,8 +1,7 @@
 import { orangeHrmUsers } from '../../../src/data/orangehrm/users';
-import { expect, test } from '../../../src/fixtures/orangehrm/live.fixture';
+import { test } from '../../../src/fixtures/orangehrm/live.fixture';
 import { DashboardPage } from '../../../src/pages/orangehrm/dashboard.page';
 import { LoginPage } from '../../../src/pages/orangehrm/login.page';
-import { ORANGE_HRM_UI_TIMEOUT } from '../../../src/pages/orangehrm/orangehrm.constants';
 
 test.describe('OrangeHRM login', () => {
   test('signs in successfully with valid credentials', async ({ page }) => {
@@ -40,8 +39,7 @@ test.describe('OrangeHRM login', () => {
     });
 
     await test.step('Verify the invalid credentials message is shown', async () => {
-      await expect(loginPage.invalidCredentialsAlert).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
-      await expect(loginPage.invalidCredentialsMessage).toContainText('Invalid credentials');
+      await loginPage.expectInvalidCredentialsError();
     });
   });
 });

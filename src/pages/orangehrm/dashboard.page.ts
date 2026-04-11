@@ -3,9 +3,9 @@ import { buildAppUrl } from '../../config/testEnvironment';
 import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export class DashboardPage {
-  readonly adminNavLink: Locator;
-  readonly dashboardHeading: Locator;
-  readonly dashboardUrlPattern: RegExp;
+  private readonly adminNavLink: Locator;
+  private readonly dashboardHeading: Locator;
+  private readonly dashboardUrlPattern: RegExp;
 
   constructor(private readonly page: Page) {
     this.adminNavLink = page.getByRole('link', { name: /^Admin$/i });
@@ -13,13 +13,13 @@ export class DashboardPage {
     this.dashboardUrlPattern = /\/web\/index\.php\/dashboard\/index/;
   }
 
-  async open(): Promise<void> {
+  public async open(): Promise<void> {
     await this.page.goto(buildAppUrl('/web/index.php/dashboard/index', 'orangehrm'), {
       waitUntil: 'domcontentloaded',
     });
   }
 
-  async expectLoaded(): Promise<void> {
+  public async expectLoaded(): Promise<void> {
     // The demo often updates the route before the authenticated shell is fully usable.
     // Gate on stable dashboard UI first, then confirm the final URL.
     await expect(this.adminNavLink).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });

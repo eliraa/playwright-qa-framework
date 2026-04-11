@@ -7,13 +7,13 @@ import {
 import { ORANGE_HRM_UI_TIMEOUT } from './orangehrm.constants';
 
 export class LoginPage {
-  readonly loginUrlPattern: RegExp;
-  readonly loginHeading: Locator;
-  readonly usernameInput: Locator;
-  readonly passwordInput: Locator;
-  readonly loginButton: Locator;
-  readonly invalidCredentialsAlert: Locator;
-  readonly invalidCredentialsMessage: Locator;
+  private readonly loginUrlPattern: RegExp;
+  private readonly loginHeading: Locator;
+  private readonly usernameInput: Locator;
+  private readonly passwordInput: Locator;
+  private readonly loginButton: Locator;
+  private readonly invalidCredentialsAlert: Locator;
+  private readonly invalidCredentialsMessage: Locator;
 
   constructor(private readonly page: Page) {
     this.loginUrlPattern = /\/web\/index\.php\/auth\/login/;
@@ -31,7 +31,7 @@ export class LoginPage {
     );
   }
 
-  async open(): Promise<void> {
+  public async open(): Promise<void> {
     const loginUrl = buildAppUrl('/web/index.php/auth/login', 'orangehrm');
     const navigationStartedAt = Date.now();
 
@@ -62,13 +62,18 @@ export class LoginPage {
     await this.expectReady();
   }
 
-  async login(username: string, password: string): Promise<void> {
+  public async login(username: string, password: string): Promise<void> {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await this.loginButton.click();
   }
 
-  async expectReady(): Promise<void> {
+  public async expectInvalidCredentialsError(): Promise<void> {
+    await expect(this.invalidCredentialsAlert).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
+    await expect(this.invalidCredentialsMessage).toContainText('Invalid credentials');
+  }
+
+  private async expectReady(): Promise<void> {
     // The live demo can report the login route as loaded while the page is still blank.
     // Wait for the login shell first, then the actionable control.
     try {

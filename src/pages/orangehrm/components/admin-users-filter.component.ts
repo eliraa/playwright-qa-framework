@@ -5,12 +5,12 @@ export type UserRole = 'Admin' | 'ESS';
 export type UserStatus = 'Enabled' | 'Disabled';
 
 export class AdminUsersFilterComponent {
-  readonly form: Locator;
-  readonly usernameInput: Locator;
-  readonly userRoleDropdown: Locator;
-  readonly statusDropdown: Locator;
-  readonly searchButton: Locator;
-  readonly resetButton: Locator;
+  private readonly form: Locator;
+  private readonly usernameInput: Locator;
+  private readonly userRoleDropdown: Locator;
+  private readonly statusDropdown: Locator;
+  private readonly searchButton: Locator;
+  private readonly resetButton: Locator;
 
   constructor(private readonly page: Page) {
     const adminForm = page.locator('form').filter({
@@ -25,34 +25,34 @@ export class AdminUsersFilterComponent {
     this.resetButton = adminForm.getByRole('button', { name: /^Reset$/i });
   }
 
-  async expectReady(): Promise<void> {
+  public async expectReady(): Promise<void> {
     await expect(this.usernameInput).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
     await expect(this.userRoleDropdown).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
     await expect(this.statusDropdown).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
     await expect(this.searchButton).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
   }
 
-  async setUsername(username: string): Promise<void> {
+  public async setUsername(username: string): Promise<void> {
     await this.usernameInput.fill(username);
   }
 
-  async selectUserRole(role: UserRole): Promise<void> {
+  public async selectUserRole(role: UserRole): Promise<void> {
     await this.selectDropdownOption(this.userRoleDropdown, role);
   }
 
-  async selectStatus(status: UserStatus): Promise<void> {
+  public async selectStatus(status: UserStatus): Promise<void> {
     await this.selectDropdownOption(this.statusDropdown, status);
   }
 
-  async submitSearch(): Promise<void> {
+  public async submitSearch(): Promise<void> {
     await this.searchButton.click();
   }
 
-  async reset(): Promise<void> {
+  public async reset(): Promise<void> {
     await this.resetButton.click();
   }
 
-  async expectReset(): Promise<void> {
+  public async expectReset(): Promise<void> {
     await expect(this.usernameInput).toHaveValue('');
   }
 

@@ -28,12 +28,12 @@ type AdminUsersColumnIndexes = {
 };
 
 export class AdminUsersTableComponent {
-  readonly resultsCard: Locator;
-  readonly table: Locator;
-  readonly headerCells: Locator;
-  readonly userRows: Locator;
-  readonly loadingSpinner: Locator;
-  readonly noRecordsMessage: Locator;
+  private readonly resultsCard: Locator;
+  private readonly table: Locator;
+  private readonly headerCells: Locator;
+  private readonly userRows: Locator;
+  private readonly loadingSpinner: Locator;
+  private readonly noRecordsMessage: Locator;
 
   constructor(private readonly page: Page) {
     this.table = page.getByRole('table').first();
@@ -48,11 +48,11 @@ export class AdminUsersTableComponent {
       .getByText(/No\s+Records?\s+Found|Keine.*gefunden/i);
   }
 
-  async expectReady(): Promise<void> {
+  public async expectReady(): Promise<void> {
     await expect(this.table).toBeVisible({ timeout: ORANGE_HRM_UI_TIMEOUT });
   }
 
-  async waitForUsersQueryToComplete(): Promise<void> {
+  public async waitForUsersQueryToComplete(): Promise<void> {
     const waitStartedAt = Date.now();
 
     logOrangeHrmDebug(this.page, 'Waiting for Admin Users API response', {
@@ -86,57 +86,53 @@ export class AdminUsersTableComponent {
     }
   }
 
-  async waitForSearchToSettle(previousRowsText: string[] = []): Promise<void> {
+  public async waitForSearchToSettle(previousUsersSnapshot: string[] = []): Promise<void> {
     await this.waitForLoadingOverlayToDisappear();
     await this.expectReady();
     // The demo can keep stale rows visible briefly after the response resolves, so wait for
     // either a real empty state or a changed set of visible rows.
     await expect
-      .poll(async () => this.hasFinishedSearchState(previousRowsText), {
+      .poll(async () => this.hasFinishedSearchState(previousUsersSnapshot), {
         timeout: ORANGE_HRM_UI_TIMEOUT,
       })
       .toBe(true);
   }
 
-  async getVisibleRowsText(): Promise<string[]> {
-    const visibleRows = await this.getVisibleUserRows();
+  public async getVisibleUsersSnapshot(): Promise<string[]> {
+    const visibleUsers = await this.getVisibleUsers();
 
-    return visibleRows.map(({ username, role, employeeName, status }) =>
+    return visibleUsers.map(({ username, role, employeeName, status }) =>
       [username, role, employeeName, status].join(' | '),
     );
   }
 
-  async isUserVisible(username: string): Promise<boolean> {
-    return this.userRowByUsername(username).isVisible();
-  }
-
-  async expectUserVisible(username: string): Promise<void> {
+  public async expectUserVisible(username: string): Promise<void> {
     await expect(this.userRowByUsername(username)).toBeVisible();
   }
 
-  async expectResultsToContain(text: string): Promise<void> {
-    const visibleRowsText = await this.getVisibleRowsText();
+  public async expectResultsToContain(text: string): Promise<void> {
+    const visibleUsersSnapshot = await this.getVisibleUsersSnapshot();
 
-    expect(visibleRowsText.length).toBeGreaterThan(0);
-    expect(visibleRowsText.join(' ')).toContain(text);
+    expect(visibleUsersSnapshot.length).toBeGreaterThan(0);
+    expect(visibleUsersSnapshot.join(' ')).toContain(text);
     await expect(this.table).toContainText(text);
   }
 
-  async expectResultsCompatibleWithRole(role: UserRole): Promise<void> {
-    const visibleRows = await this.getVisibleUserRows();
+  public async expectResultsCompatibleWithRole(role: UserRole): Promise<void> {
+    const visibleUsers = await this.getVisibleUsers();
 
-    expect(visibleRows.length).toBeGreaterThan(0);
+    expect(visibleUsers.length).toBeGreaterThan(0);
 
-    for (const row of visibleRows) {
-      expect(row.role).toBe(role);
+    for (const user of visibleUsers) {
+      expect(user.role).toBe(role);
     }
   }
 
-  async expectNoResultsFor(username: string): Promise<void> {
-    const visibleRows = await this.getVisibleUserRows();
+  public async expectNoResultsFor(username: string): Promise<void> {
+    const visibleUsers = await this.getVisibleUsers();
     const hasNoRecordsMessage = await this.hasVisibleEmptyState();
 
-    expect(visibleRows.some((row) => row.username === username)).toBe(false);
+    expect(visibleUsers.some((user) => user.username === username)).toBe(false);
 
     if (hasNoRecordsMessage) {
       await expect(this.noRecordsMessage).toBeVisible();
@@ -146,16 +142,16 @@ export class AdminUsersTableComponent {
     await expect(this.table).not.toContainText(username);
   }
 
-  async expectVisibleRowCount(expectedCount: number): Promise<void> {
-    const visibleRows = await this.getVisibleUserRows();
+  public async expectVisibleRowCount(expectedCount: number): Promise<void> {
+    const visibleUsers = await this.getVisibleUsers();
 
-    expect(visibleRows).toHaveLength(expectedCount);
+    expect(visibleUsers).toHaveLength(expectedCount);
   }
 
-  async expectVisibleRows(expectedRows: AdminUsersTableRow[]): Promise<void> {
-    const visibleRows = await this.getVisibleUserRows();
+  public async expectVisibleRows(expectedRows: AdminUsersTableRow[]): Promise<void> {
+    const visibleUsers = await this.getVisibleUsers();
 
-    expect(normalizeRowsForComparison(visibleRows)).toEqual(
+    expect(normalizeRowsForComparison(visibleUsers)).toEqual(
       normalizeRowsForComparison(expectedRows),
     );
   }
@@ -175,7 +171,7 @@ export class AdminUsersTableComponent {
     }
   }
 
-  private async hasFinishedSearchState(previousRowsText: string[]): Promise<boolean> {
+  private async hasFinishedSearchState(previousUsersSnapshot: string[]): Promise<boolean> {
     if (await this.loadingSpinner.isVisible()) {
       return false;
     }
@@ -184,17 +180,17 @@ export class AdminUsersTableComponent {
       return true;
     }
 
-    const currentRowsText = await this.getVisibleRowsText();
+    const currentUsersSnapshot = await this.getVisibleUsersSnapshot();
 
-    if (currentRowsText.length === 0) {
+    if (currentUsersSnapshot.length === 0) {
       return false;
     }
 
-    if (previousRowsText.length === 0) {
+    if (previousUsersSnapshot.length === 0) {
       return true;
     }
 
-    return currentRowsText.join(' || ') !== previousRowsText.join(' || ');
+    return currentUsersSnapshot.join(' || ') !== previousUsersSnapshot.join(' || ');
   }
 
   private async hasVisibleEmptyState(): Promise<boolean> {
@@ -209,7 +205,7 @@ export class AdminUsersTableComponent {
     }).first();
   }
 
-  private async getVisibleUserRows(): Promise<AdminUsersTableRow[]> {
+  private async getVisibleUsers(): Promise<AdminUsersTableRow[]> {
     const columnIndexes = await this.getColumnIndexes();
 
     // OrangeHRM does not expose stable test IDs or label relationships inside this grid,

@@ -18,10 +18,10 @@ export type { UserRole, UserStatus } from './components/admin-users-filter.compo
 export type { AdminUsersTableRow } from './components/admin-users-table.component';
 
 export class AdminPage {
-  readonly adminNavLink: Locator;
-  readonly filters: AdminUsersFilterComponent;
-  readonly usersTable: AdminUsersTableComponent;
-  readonly adminUrlPattern: RegExp;
+  private readonly adminNavLink: Locator;
+  private readonly filters: AdminUsersFilterComponent;
+  private readonly usersTable: AdminUsersTableComponent;
+  private readonly adminUrlPattern: RegExp;
 
   constructor(private readonly page: Page) {
     this.adminNavLink = page.getByRole('link', { name: /^Admin$/i });
@@ -30,7 +30,7 @@ export class AdminPage {
     this.adminUrlPattern = /\/web\/index\.php\/admin\/viewSystemUsers/;
   }
 
-  async open(): Promise<void> {
+  public async open(): Promise<void> {
     const openStartedAt = Date.now();
     const initialUsersQuery = this.usersTable.waitForUsersQueryToComplete();
 
@@ -61,25 +61,25 @@ export class AdminPage {
     }
   }
 
-  async expectLoaded(): Promise<void> {
+  private async expectLoaded(): Promise<void> {
     await this.filters.expectReady();
     await this.usersTable.expectReady();
   }
 
-  async setUsernameFilter(username: string): Promise<void> {
+  private async setUsernameFilter(username: string): Promise<void> {
     await this.filters.setUsername(username);
   }
 
-  async setUserRoleFilter(role: UserRole): Promise<void> {
+  private async setUserRoleFilter(role: UserRole): Promise<void> {
     await this.filters.selectUserRole(role);
   }
 
-  async setStatusFilter(status: UserStatus): Promise<void> {
+  private async setStatusFilter(status: UserStatus): Promise<void> {
     await this.filters.selectStatus(status);
   }
 
-  async clickSearch(): Promise<void> {
-    const previousRowsText = await this.usersTable.getVisibleRowsText();
+  private async clickSearch(): Promise<void> {
+    const previousRowsText = await this.usersTable.getVisibleUsersSnapshot();
     const usersQuery = this.usersTable.waitForUsersQueryToComplete();
     const searchStartedAt = Date.now();
 
@@ -106,24 +106,24 @@ export class AdminPage {
     }
   }
 
-  async searchUserByUsername(username: string): Promise<void> {
+  public async searchUserByUsername(username: string): Promise<void> {
     await this.setUsernameFilter(username);
     await this.clickSearch();
   }
 
-  async searchByUserRole(role: UserRole): Promise<void> {
+  public async searchByUserRole(role: UserRole): Promise<void> {
     await this.setUserRoleFilter(role);
     await this.clickSearch();
   }
 
-  async searchByUsernameAndRole(username: string, role: UserRole): Promise<void> {
+  public async searchByUsernameAndRole(username: string, role: UserRole): Promise<void> {
     await this.setUsernameFilter(username);
     await this.setUserRoleFilter(role);
     await this.clickSearch();
   }
 
-  async resetFilters(): Promise<void> {
-    const previousRowsText = await this.usersTable.getVisibleRowsText();
+  private async resetFilters(): Promise<void> {
+    const previousRowsText = await this.usersTable.getVisibleUsersSnapshot();
     const usersQuery = this.usersTable.waitForUsersQueryToComplete();
 
     await this.filters.reset();
@@ -132,35 +132,27 @@ export class AdminPage {
     await this.filters.expectReset();
   }
 
-  async getVisibleRowsText(): Promise<string[]> {
-    return this.usersTable.getVisibleRowsText();
-  }
-
-  async isUserVisible(username: string): Promise<boolean> {
-    return this.usersTable.isUserVisible(username);
-  }
-
-  async expectUserVisible(username: string): Promise<void> {
+  public async expectUserVisible(username: string): Promise<void> {
     await this.usersTable.expectUserVisible(username);
   }
 
-  async expectResultsToContain(text: string): Promise<void> {
+  public async expectResultsToContain(text: string): Promise<void> {
     await this.usersTable.expectResultsToContain(text);
   }
 
-  async expectResultsCompatibleWithRole(role: UserRole): Promise<void> {
+  public async expectResultsCompatibleWithRole(role: UserRole): Promise<void> {
     await this.usersTable.expectResultsCompatibleWithRole(role);
   }
 
-  async expectNoResultsFor(username: string): Promise<void> {
+  public async expectNoResultsFor(username: string): Promise<void> {
     await this.usersTable.expectNoResultsFor(username);
   }
 
-  async expectVisibleRowCount(expectedCount: number): Promise<void> {
+  public async expectVisibleRowCount(expectedCount: number): Promise<void> {
     await this.usersTable.expectVisibleRowCount(expectedCount);
   }
 
-  async expectVisibleRows(expectedRows: AdminUsersTableRow[]): Promise<void> {
+  public async expectVisibleRows(expectedRows: AdminUsersTableRow[]): Promise<void> {
     await this.usersTable.expectVisibleRows(expectedRows);
   }
 }
