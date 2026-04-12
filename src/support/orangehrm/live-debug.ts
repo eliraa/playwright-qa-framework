@@ -5,6 +5,8 @@ type OrangeHrmDebugSession = {
   entries: string[];
 };
 
+// Keep debug buffers scoped to the Playwright Page so they disappear with the page
+// and cannot leak log entries across tests.
 const debugSessions = new WeakMap<Page, OrangeHrmDebugSession>();
 
 export function isOrangeHrmDebugEnabled(): boolean {
@@ -16,6 +18,8 @@ export function registerOrangeHrmDebugSession(page: Page): void {
     return;
   }
 
+  // The page objects call into this logger unconditionally, so initialize the
+  // per-page buffer once in the fixture and let regular runs stay a cheap no-op.
   debugSessions.set(page, { entries: [] });
 }
 
@@ -31,9 +35,13 @@ export function logOrangeHrmDebug(
   const session = debugSessions.get(page);
 
   if (!session) {
+    // Missing session means the debug fixture was not enabled for this page, so
+    // logging should quietly opt out instead of making normal runs fail.
     return;
   }
 
+  // Flatten nested data and native Error instances into stable JSON so the console
+  // output and attached artifact stay readable.
   const detailText = details ? ` | ${JSON.stringify(normalizeDebugValue(details))}` : '';
   const entry = `[${new Date().toISOString()}] ${message}${detailText}`;
 
@@ -57,12 +65,16 @@ export async function attachOrangeHrmDebugLog(page: Page, testInfo: TestInfo): P
       session.entries.length > 0
       && testInfo.status !== testInfo.expectedStatus
     ) {
+      // Successful runs already have enough signal from the standard reporter.
+      // Attach the custom log only when the test outcome is unexpectedly bad.
       await testInfo.attach('orangehrm-debug-log', {
         body: Buffer.from(session.entries.join('\n'), 'utf8'),
         contentType: 'text/plain',
       });
     }
   } finally {
+    // Always clear the page-scoped buffer after the fixture finishes, even if the
+    // attach step throws, so later tests start from a clean debug state.
     debugSessions.delete(page);
   }
 }
@@ -77,6 +89,8 @@ export function describeOrangeHrmDebugError(error: unknown): string {
 
 function normalizeDebugValue(value: unknown): unknown {
   if (value instanceof Error) {
+    // Native Error objects do not serialize usefully with JSON.stringify, so reduce
+    // them to the fields that matter in a failure artifact.
     return {
       name: value.name,
       message: value.message,

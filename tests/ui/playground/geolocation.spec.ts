@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContextOptions } from '@playwright/test';
-import { PlaygroundPageManager } from '../../../src/pages/playground/playground.page-manager';
+import { GeolocationPage } from '../../../src/pages/playground/element-interaction.page';
 
 const sofiaCoordinates = {
   latitude: 42.6977,
@@ -11,20 +11,20 @@ async function openGeolocationPage(
   contextOptions: BrowserContextOptions = {},
 ): Promise<{
   close: () => Promise<void>;
-  playground: PlaygroundPageManager;
+  geolocationPage: GeolocationPage;
 }> {
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
     ...contextOptions,
   });
   const page = await context.newPage();
-  const playground = new PlaygroundPageManager(page);
+  const geolocationPage = new GeolocationPage(page);
 
-  await playground.geolocation.open();
+  await geolocationPage.open();
 
   return {
     close: async () => context.close(),
-    playground,
+    geolocationPage,
   };
 }
 
@@ -36,11 +36,11 @@ test.describe('Geolocation', () => {
     });
 
     try {
-      await expect(session.playground.geolocation.locationValue).toHaveText('Not requested');
+      await expect(session.geolocationPage.locationValue).toHaveText('Not requested');
 
-      await session.playground.geolocation.requestLocationButton.click();
+      await session.geolocationPage.requestLocationButton.click();
 
-      await expect(session.playground.geolocation.locationValue).toHaveText('42.697700, 23.321900');
+      await expect(session.geolocationPage.locationValue).toHaveText('42.697700, 23.321900');
     } finally {
       await session.close();
     }
@@ -55,11 +55,11 @@ test.describe('Geolocation', () => {
     const session = await openGeolocationPage(browser);
 
     try {
-      await expect(session.playground.geolocation.locationValue).toHaveText('Not requested');
+      await expect(session.geolocationPage.locationValue).toHaveText('Not requested');
 
-      await session.playground.geolocation.requestLocationButton.click();
+      await session.geolocationPage.requestLocationButton.click();
 
-      await expect(session.playground.geolocation.locationValue).toHaveText('unavailable');
+      await expect(session.geolocationPage.locationValue).toHaveText('unavailable');
     } finally {
       await session.close();
     }

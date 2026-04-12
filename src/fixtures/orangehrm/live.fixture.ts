@@ -18,6 +18,8 @@ export const test = base.extend<OrangeHrmLiveFixtures>({
       return;
     }
 
+    // Centralize debug wiring in one auto fixture so specs and page objects can emit
+    // context freely without each test repeating listener setup and teardown.
     registerOrangeHrmDebugSession(page);
     logOrangeHrmDebug(page, 'OrangeHRM debug capture enabled', {
       testTitle: testInfo.title,
@@ -25,6 +27,8 @@ export const test = base.extend<OrangeHrmLiveFixtures>({
     });
 
     const onRequestFailed = (request: Request): void => {
+      // Ignore unrelated browser noise and keep the artifact focused on the live
+      // OrangeHRM app plus the admin-users API that drives the showcase workflow.
       if (!isRelevantOrangeHrmRequest(request.url())) {
         return;
       }
@@ -49,6 +53,8 @@ export const test = base.extend<OrangeHrmLiveFixtures>({
     try {
       await use();
     } finally {
+      // Drop listeners before attaching artifacts so teardown stays deterministic even
+      // when the page is already in a noisy failure state.
       page.off('requestfailed', onRequestFailed);
       page.off('pageerror', onPageError);
       await attachOrangeHrmDebugLog(page, testInfo);
@@ -62,8 +68,12 @@ function isRelevantOrangeHrmRequest(url: string): boolean {
   try {
     const parsedUrl = new URL(url);
 
+    // Most requests during a run are third-party assets, so match the OrangeHRM host
+    // directly and keep the admin-users helper as an explicit endpoint-level fallback.
     return parsedUrl.hostname.includes('orangehrmlive.com') || isOrangeHrmAdminUsersUrl(url);
   } catch {
+    // Some framework callbacks can surface non-absolute URLs; fall back to the
+    // endpoint matcher so those cases still participate in debug capture.
     return isOrangeHrmAdminUsersUrl(url);
   }
 }

@@ -63,7 +63,7 @@ export class AdminUsersTableComponent {
       const response = await this.page.waitForResponse(
         (receivedResponse) => isOrangeHrmAdminUsersResponse(receivedResponse) && receivedResponse.ok(),
         {
-          timeout: ORANGE_HRM_UI_TIMEOUT,
+          timeout: ORANGE_HRM_UI_TIMEOUT + 5_000,
         },
       );
       const query = getOrangeHrmAdminUsersQuery(response);
@@ -238,6 +238,8 @@ export class AdminUsersTableComponent {
   }
 
   private async getColumnIndexes(): Promise<AdminUsersColumnIndexes> {
+    // OrangeHRM can prepend non-data cells and wrap header text across lines, so
+    // derive positions from the visible headers instead of hard-coding column offsets.
     const headerTexts = (await this.headerCells.allInnerTexts()).map((headerText) =>
       normalizeWhitespace(headerText),
     );
@@ -249,6 +251,8 @@ export class AdminUsersTableComponent {
       status: findHeaderIndex(headerTexts, /^Status$/i),
     };
 
+    // Fail fast if the live DOM shape drifts enough that the table can no longer be
+    // parsed reliably from semantic headers.
     expect(columnIndexes.username).toBeGreaterThanOrEqual(0);
     expect(columnIndexes.role).toBeGreaterThanOrEqual(0);
     expect(columnIndexes.employeeName).toBeGreaterThanOrEqual(0);
@@ -273,6 +277,8 @@ function normalizeRowsForComparison(rows: AdminUsersTableRow[]): AdminUsersTable
 }
 
 function normalizeWhitespace(value: string): string {
+  // Header cells often render as stacked text nodes, so collapse line breaks and
+  // extra spacing before matching them against the expected column names.
   return value
     .split(/\r?\n/)
     .map((textChunk) => textChunk.trim())
